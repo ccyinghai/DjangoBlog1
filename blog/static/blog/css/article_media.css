@@ -1,0 +1,110 @@
+/*
+ * Custom CSS for styling media items (images and videos) in article content.
+ */
+
+/* 通用媒体元素样式，确保它们不会干扰布局 */
+.article-content img,
+.article-content video {
+    width: 535.8px; /* 设置固定宽度 */
+    height: 300px; /* 设置固定高度 */
+    object-fit: cover; /* Cover the area, cropping if necessary */
+    display: block !important;
+    margin: 0 auto 10px auto; /* Centered with bottom margin */
+}
+
+.article-content img::before {
+    content: '';
+    display: block;
+    /* Approximate 16:9 aspect ratio - adjust as needed */
+    padding-top: 56.25%; /* (9 / 16) * 100% */
+}
+
+/* Clear floats after the article content container if needed (might not be necessary with modern layout) */
+.article-content::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+/* Container for the media gallery */
+.article-media-gallery {
+    display: grid; /* Use Grid for layout */
+    grid-template-columns: 1fr; /* Default to single column for detail page */
+    gap: 10px; /* Add some spacing between items */
+    margin-top: 15px; /* Add some space above the gallery */
+    margin-bottom: 15px; /* Add some space below the gallery */
+    /* Allow images/videos directly inside or nested within paragraphs/divs */
+    /* The grid layout will be applied to the container, and its direct children
+       that are images or videos will be grid items, or we will target nested ones with JS */
+}
+
+/* Styles for images and videos within the gallery */
+.article-media-gallery img,
+.article-media-gallery video {
+    width: 535.8px; /* 设置固定宽度 */
+    height: 300px; /* 设置固定高度 */
+    object-fit: cover; /* Cover the area, cropping if necessary */
+    display: block !important; /* Force block display for proper margin application */
+    margin-bottom: 10px; /* Add margin below each image/video */
+}
+
+/* If images/videos are wrapped in <p>, ensure they still get margin */
+.article-media-gallery p img,
+.article-media-gallery p video {
+    margin-bottom: 10px; /* Ensure margin applies even if nested */
+}
+
+/* Styles for two-column layout - Applied by JS or conditionally in template */
+.article-media-gallery.gallery-two-col {
+    grid-template-columns: repeat(2, 1fr); /* Two equal columns */
+    /* Adjusted minmax for simplicity, 1fr should work with width: 100% on items */
+    /* grid-template-columns: repeat(auto-fit, minmax(calc(50% - 5px), 1fr)); */
+}
+
+/* Styles for three-column layout - Applied by JS */
+.article-media-gallery.gallery-three-col {
+    grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+    /* Adjusted minmax for simplicity, 1fr should work with width: 100% on items */
+    /* grid-template-columns: repeat(auto-fit, minmax(calc(33.333% - 6.666px), 1fr)); */
+}
+
+/* Ensure other elements inside the gallery don't interfere with the grid */
+/* This might need adjustment based on exact markdown output HTML */
+.article-media-gallery > *:not(img):not(video) {
+   /* Potentially reset display for elements like paragraphs if they become direct children */
+   /* display: block; */
+   /* If these elements should span across columns, use grid-column */
+   /* grid-column: 1 / -1; /* span all columns */
+}
+
+/* Add skeleton screen styles */
+.article-content img.skeleton {
+    background-color: #f0f0f0; /* Grey background */
+    /* Add animation if desired */
+    /* animation: pulse 1.5s infinite ease-in-out; */
+}
+
+/* Example animation (uncomment to use) */
+/*
+@keyframes pulse {
+    0% { background-color: #f0f0f0; }
+    50% { background-color: #e0e0e0; }
+    100% { background-color: #f0f0f0; }
+}
+*/ 
+
+.article-media-gallery[data-is-index="true"] video {
+    display: none !important;
+}
+
+/* Hide videos on list pages - apply to all videos within the article on list pages */
+article.list-page .article video {
+    display: none !important;
+}
+
+/* Fancybox Customizations: Remove padding/white box for images */
+
+.article {
+    /* Add bottom margin to create space between text and images */
+    margin-bottom: 20px;
+}
