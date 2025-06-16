@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import mdeditor.fields
+import ckeditor_uploader.fields
 
 
 class Migration(migrations.Migration):
@@ -120,7 +120,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='article',
             name='body',
-            field=mdeditor.fields.MDTextField(verbose_name='body'),
+            field=ckeditor_uploader.fields.RichTextUploadingField(verbose_name='body'),
         ),
         migrations.AlterField(
             model_name='article',

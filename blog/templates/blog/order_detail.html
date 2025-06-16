@@ -1,0 +1,73 @@
+{% extends "blog/base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Order Detail" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3>{% translate "Order Detail" %}</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>{% translate "Order ID" %}:</strong> {{ order.order_id }}</p>
+                    <p><strong>{% translate "Membership Type" %}:</strong> {{ order.membership_type.name }}</p>
+                    <p><strong>{% translate "Amount" %}:</strong> ¥{{ order.amount }}</p>
+                    <p><strong>{% translate "Order Status" %}:</strong>
+                        {% if order.is_paid %}
+                            <span class="badge bg-success">{% translate "Paid" %}</span>
+                            {% if order.paid_time %}({{ order.paid_time|date:"Y-m-d H:i" }}){% endif %}
+                        {% else %}
+                            <span class="badge bg-warning">{% translate "Pending Payment" %}</span>
+                        {% endif %}
+                    </p>
+
+                    <hr>
+
+                    <h4>{% translate "Your Current Membership Status" %}</h4>
+                    <p><strong>{% translate "Status" %}:</strong>
+                        {% if is_member %} {# Use the boolean 'is_member' variable #}
+                            <span class="badge bg-success">{% translate "Active" %}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{% translate "Inactive / Expired" %}</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>{% translate "Membership Plan" %}:</strong> {{ user_membership_plan }}</p>
+                    {% if is_member and order.user.membership and order.user.membership.end_date %} {# Only show end date if actively a member #}
+                        <p><strong>{% translate "End Date" %}:</strong> {{ order.user.membership.end_date|date:"Y-m-d H:i" }}</p>
+                    {% endif %}
+
+                    <hr>
+
+                    <h4>{% translate "Redeem Membership" %}</h4>
+                    {% if messages %}
+                        <ul class="messages list-unstyled">
+                            {% for message in messages %}
+                                <li{% if message.tags %} class="alert alert-{{ message.tags }}"{% endif %}>{{ message }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <form method="post" class="mt-3">
+                        {% csrf_token %}
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="{% translate "Enter Redemption Code" %}" name="redemption_code" aria-label="Redemption Code">
+                            <button class="btn btn-primary" type="submit">{% translate "Redeem" %}</button>
+                        </div>
+                    </form>
+
+                    {% comment %}
+                    <div class="text-center mt-4">
+                        {% if not order.is_paid %}
+                            <a href="{% url 'blog:simulate_pay' order.order_id %}" class="btn btn-success">{% translate "Simulate Payment" %}</a>
+                        {% endif %}
+                    </div>
+                    {% endcomment %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

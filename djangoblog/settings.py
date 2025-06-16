@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 import os
 import sys
+from platform import _wmi_query
 
 from django.utils.translation import gettext_lazy as _
 
@@ -36,36 +37,53 @@ DEBUG = env_to_bool('DJANGO_DEBUG', True)
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['*', '127.0.0.1', 'example.com']
+ALLOWED_HOSTS = ['*']
 # django 4.0新增配置
 CSRF_TRUSTED_ORIGINS = ['http://example.com']
 # Application definition
 
 
 INSTALLED_APPS = [
-    # 'django.contrib.admin',
-    'django.contrib.admin.apps.SimpleAdminConfig',
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    'django.contrib.sitemaps',
-    'mdeditor',
-    'haystack',
-    'blog',
+
     'accounts',
+    'blog',
     'comments',
     'oauth',
-    'servermanager',
     'owntracks',
-    'compressor'
+    'servermanager',
+    'haystack',
+    'pure_pagination',
+    'compressor',
+    'ckeditor',
+    'ckeditor_uploader',
+    'rest_framework',
+    'imagekit',
+    'jsonfield',
+    'django_json_widget',
+    'markdown',
+    'auditlog',
+    'django_apscheduler',
+    'channels',
+    'channels_redis',
+    'grappelli',
+    'filebrowser',
+    'storages',
+    'tinymce',
+    'captcha',
+    'crispy_forms',
 ]
 
 MIDDLEWARE = [
 
     'django.middleware.security.SecurityMiddleware',
+    'djangoblog.middleware.rate_limit_middleware.RateLimitMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.gzip.GZipMiddleware',
@@ -85,7 +103,9 @@ ROOT_URLCONF = 'djangoblog.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -95,6 +115,10 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'blog.context_processors.seo_processor'
             ],
+            'libraries': {
+                # 'blog_tags': 'blog.templatetags.blog_tags', # 移除显式加载
+            },
+            'debug': True,
         },
     },
 ]
@@ -108,15 +132,15 @@ WSGI_APPLICATION = 'djangoblog.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DJANGO_MYSQL_DATABASE') or 'djangoblog',
-        'USER': os.environ.get('DJANGO_MYSQL_USER') or 'root',
-        'PASSWORD': os.environ.get('DJANGO_MYSQL_PASSWORD') or 'root',
-        'HOST': os.environ.get('DJANGO_MYSQL_HOST') or '127.0.0.1',
-        'PORT': int(
-            os.environ.get('DJANGO_MYSQL_PORT') or 3306),
-        'OPTIONS': {
-            'charset': 'utf8mb4'},
-    }}
+        'NAME': 'djangoblog',
+        'USER': 'root',
+        'PASSWORD': '12345678',
+        'HOST': "localhost",
+        'PORT': 3306,
+        
+
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
@@ -153,7 +177,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
@@ -167,7 +191,6 @@ HAYSTACK_CONNECTIONS = {
 }
 # Automatically update searching index
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
-# Allow user login with username and password
 AUTHENTICATION_BACKENDS = [
     'accounts.user_login_backend.EmailOrUsernameModelBackend']
 
@@ -175,6 +198,12 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'collectedstatic')
 
 STATIC_URL = '/static/'
 STATICFILES = os.path.join(BASE_DIR, 'static')
+
+# MEDIA_URL = '/media/' # Old local media URL
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads') # Old local media root
+
+# Point MEDIA_URL directly to Wasabi for direct access
+MEDIA_URL = 'https://s3.ap-southeast-1.wasabisys.com/huani-wasabi-bucket-2024/media/' # Your Wasabi bucket base URL + a media path if desired
 
 AUTH_USER_MODEL = 'accounts.BlogUser'
 LOGIN_URL = '/login/'
@@ -189,7 +218,10 @@ BOOTSTRAP_COLOR_TYPES = [
 
 # paginate
 PAGINATE_BY = 10
-# http cache timeout
+
+
+
+
 CACHE_CONTROL_MAX_AGE = 2592000
 # cache setting
 CACHES = {
@@ -235,61 +267,43 @@ if not os.path.exists(LOG_PATH):
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'root': {
-        'level': 'INFO',
-        'handlers': ['console', 'log_file'],
-    },
     'formatters': {
         'verbose': {
-            'format': '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d %(module)s] %(message)s',
-        }
-    },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
         },
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
         },
     },
     'handlers': {
-        'log_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOG_PATH, 'djangoblog.log'),
-            'when': 'D',
-            'formatter': 'verbose',
-            'interval': 1,
-            'delay': True,
-            'backupCount': 5,
-            'encoding': 'utf-8'
-        },
         'console': {
             'level': 'DEBUG',
-            'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
+            'formatter': 'simple' if DEBUG else 'verbose',
         },
-        'null': {
-            'class': 'logging.NullHandler',
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
-        }
     },
     'loggers': {
-        'djangoblog': {
-            'handlers': ['log_file', 'console'],
+        'django': {
+            'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'accounts': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
             'propagate': True,
         },
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
-            'propagate': False,
-        }
+        'blog': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
     }
 }
 
@@ -313,9 +327,46 @@ COMPRESS_JS_FILTERS = [
     'compressor.filters.jsmin.JSMinFilter'
 ]
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
-MEDIA_URL = '/media/'
+CKEDITOR_BASEPATH = '/static/ckeditor/ckeditor/' # This should point to your CKEditor installation directory
+CKEDITOR_UPLOAD_PATH = 'uploads/' # This is where files uploaded via CKEditor default uploader will go (still needs to be S3 compatible)
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'extraPlugins': 'codesnippet,image2,wasabifilebrowser', # Removed uploadimage and exportpdf, Add wasabifilebrowser plugin
+        'removePlugins': 'filebrowser,image,exportpdf,uploadimage', # Ensure all conflicting/unwanted plugins are removed
+        'filebrowserBrowseUrl': '/wasabi-file-browser/?CKEditor=id_body', # Set the custom file browser URL
+        'filebrowserUploadUrl': '/ckeditor/upload/', # Default upload URL
+        'allowedContent': True, # Temporarily disable ACF for testing
+        'pasteFromWordRemoveFontStyles': False,
+        'pasteFromWordRemoveStyles': False,
+        'pasteFromWordNumberedListConversion': 'lower-roman',
+        'pasteFromWordPromptCleanup': True,
+        'forcePasteAsPlainText': False,
+        'clipboard_handleImages': True, # Enable clipboard image handling
+        'toolbar_Custom': [
+            ['Source', '-', 'Save', 'NewPage', 'Preview', 'Print', '-', 'Templates'],
+            ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'],
+            ['Find', 'Replace', '-', 'SelectAll', '-', 'Scayt'],
+            ['Form', 'Checkbox', 'Radio', 'TextField', 'Textarea', 'Select', 'Button', 'ImageButton', 'HiddenField'],
+            ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock', '-', 'BidiLtr', 'BidiRtl', 'Language'],
+            ['Link', 'Unlink', 'Anchor'],
+            ['Image2', 'Flash', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar', 'PageBreak', 'Iframe'],
+            ['WasabiFileBrowser'], # Add the new button here
+            '/',
+            ['Styles', 'Format', 'Font', 'FontSize'],
+            ['TextColor', 'BGColor'],
+            ['Maximize', 'ShowBlocks', '-', 'About'],
+            ['CodeSnippet']
+        ],
+        'toolbar': 'Custom',
+    },
+}
+
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -330,3 +381,64 @@ if os.environ.get('DJANGO_ELASTICSEARCH_HOST'):
             'ENGINE': 'djangoblog.elasticsearch_backend.ElasticSearchEngine',
         },
     }
+
+# CKEditor 配置
+CKEDITOR_JQUERY_URL = 'https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js' # 如果你的Django Admin没有加载jQuery，可以加上这个
+
+# FileBrowser settings
+FILEBROWSER_DIRECTORY = '' # Set to the subdirectory where your files are uploaded
+
+# Optional: FileBrowser versions (for image resizing)
+# FILEBROWSER_VERSIONS = {
+#     'admin_thumbnail': {'verbose_name': 'Admin Thumbnail', 'width': 60, 'height': 60, 'opts': 'crop'},
+#     'thumbnail': {'verbose_name': 'Thumbnail', 'width': 140, 'height': '', 'opts': 'upscale'},
+#     'small': {'verbose_name': 'Small', 'width': 300, 'height': '', 'opts': 'upscale'},
+#     'medium': {'verbose_name': 'Medium', 'width': 600, 'height': '', 'opts': 'upscale'},
+#     'big': {'verbose_name': 'Big', 'width': 760, 'height': '', 'opts': 'upscale'},
+#     'large': {'verbose_name': 'Large', 'width': 1000, 'height': '', 'opts': 'upscale'},
+# }
+
+# Optional: FileBrowser default version for insertion
+# FILEBROWSER_DEFAULT_VERSION = 'medium'
+
+# Optional: FileBrowser allowed file extensions
+# FILEBROWSER_EXTENSIONS = {
+#     'Image': ['.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff'],
+#     'Video': ['.mov', '.wmv', '.mpeg', '.mp4', '.avi', '.flv'],
+#     'Document': ['.pdf', '.doc', '.rtf', '.txt', '.xls', '.csv', '.pps', '.ppt', '.docx', '.xlsx', '.pptx'],
+#     'Archive': ['.zip', '.gz', '.tar', '.bz2'],
+#     'Audio': ['.wav', '.mp3', '.mp4a', '.oga', '.ogg', '.playback'],
+# }
+
+# Optional: FileBrowser icon versions
+# FILEBROWSER_ADMIN_VERSIONS = ['thumbnail']
+# FILEBROWSER_ADMIN_THUMBNAIL = 'admin_thumbnail'
+
+# 默认文件存储后端
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# Wasabi S3 相关配置
+AWS_ACCESS_KEY_ID = 'BKGHJM0UOOQXH7MQW42T'
+AWS_SECRET_ACCESS_KEY = 'YQZeLGeHELdTXJeuRbNdGOaimdoIVAqqmK9Tsrzk'
+AWS_STORAGE_BUCKET_NAME = 'huani-wasabi-bucket-2024'
+AWS_S3_ENDPOINT_URL = 'https://s3.ap-southeast-1.wasabisys.com'  # 例如 https://s3.us-west-1.wasabisys.com
+AWS_LOCATION = 'media/uploads/'
+
+# 可选配置
+AWS_S3_REGION_NAME = 'ap-southeast-1'  # 例如 us-west-1
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_DEFAULT_ACL = None  # 推荐设置为None，避免权限问题
+AWS_S3_FILE_OVERWRITE = False  # 避免文件名冲突时被覆盖
+AWS_QUERYSTRING_AUTH = True   # 让文件URL不带签名，适合公开访问
+AWS_QUERYSTRING_EXPIRE = 86400  # 预签名URL过期时间（秒），这里设置为7天
+
+CAPTCHA_IMAGE_SIZE = (120, 40)
+CAPTCHA_FONT_SIZE = 24
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# Rate Limiting settings
+RATE_LIMIT_REQUESTS = 500  # Number of requests allowed in the time window
+RATE_LIMIT_TIME_WINDOW = 300 # Time window in seconds (e.g., 300 seconds = 5 minutes)
+

@@ -7,7 +7,7 @@ from django import template
 from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.template.defaultfilters import stringfilter
+from django.template.defaultfilters import stringfilter, truncatechars_html
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -18,6 +18,7 @@ from djangoblog.utils import CommonMarkdown, sanitize_html
 from djangoblog.utils import cache
 from djangoblog.utils import get_current_site
 from oauth.models import OAuthUser
+from bs4 import BeautifulSoup # Import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,10 @@ def datetimeformat(data):
 @register.filter()
 @stringfilter
 def custom_markdown(content):
+    """
+    简化版 Markdown 过滤器，只负责将 Markdown 文本转换为 HTML。
+    其他内容过滤逻辑已移至 load_article_detail 标签。
+    """
     return mark_safe(CommonMarkdown.get_markdown(content))
 
 
@@ -64,16 +69,25 @@ def comment_markdown(content):
 
 @register.filter(is_safe=True)
 @stringfilter
-def truncatechars_content(content):
+def truncatechars_content(content, is_list_page=False):
     """
     获得文章内容的摘要
     :param content:
     :return:
     """
-    from django.template.defaultfilters import truncatechars_html
     from djangoblog.utils import get_blog_setting
     blogsetting = get_blog_setting()
-    return truncatechars_html(content, blogsetting.article_sub_length)
+    
+    html_content = truncatechars_html(content, blogsetting.article_sub_length)
+
+    if is_list_page:
+        # If it's a list page, remove video tags from truncated content as well
+        soup = BeautifulSoup(html_content, 'html.parser')
+        for video_tag in soup.find_all('video'):
+            video_tag.decompose()
+        html_content = str(soup)
+        
+    return html_content
 
 
 @register.filter(is_safe=True)
@@ -84,8 +98,8 @@ def truncate(content):
     return strip_tags(content)[:150]
 
 
-@register.inclusion_tag('blog/tags/breadcrumb.html')
-def load_breadcrumb(article):
+@register.inclusion_tag('blog/tags/breadcrumb.html', takes_context=True)
+def load_breadcrumb(context, article):
     """
     获得文章面包屑
     :param article:
@@ -94,7 +108,8 @@ def load_breadcrumb(article):
     names = article.get_category_tree()
     from djangoblog.utils import get_blog_setting
     blogsetting = get_blog_setting()
-    site = get_current_site().domain
+    request = context.get('request')
+    site = get_current_site(request).domain
     names.append((blogsetting.site_name, '/'))
     names = names[::-1]
 
@@ -179,6 +194,12 @@ def load_sidebar(user, linktype):
             'sidebar_tags': sidebar_tags,
             'extra_sidebars': extra_sidebars
         }
+        # Remove 'sidebar_categorys' and 'most_read_articles' from the value dictionary
+        if 'sidebar_categorys' in value:
+            del value['sidebar_categorys']
+        if 'most_read_articles' in value:
+            del value['most_read_articles']
+
         cache.set("sidebar" + linktype, value, 60 * 60 * 60 * 3)
         logger.info('set sidebar cache.key:{key}'.format(key="sidebar" + linktype))
         value['user'] = user
@@ -268,21 +289,123 @@ def load_pagination_info(page_obj, page_type, tag_name):
 
 
 @register.inclusion_tag('blog/tags/article_info.html')
-def load_article_detail(article, isindex, user):
+def load_article_detail(article, isindex, user, exclude_initial_images=False):
     """
-    加载文章详情
+    加载文章详情，并在渲染前处理文章内容。
     :param article:
-    :param isindex:是否列表页，若是列表页只显示摘要
+    :param isindex: 是否列表页，若是列表页只显示摘要
+    :param exclude_initial_images: 是否在初始加载时排除图片
     :return:
     """
     from djangoblog.utils import get_blog_setting
     blogsetting = get_blog_setting()
+
+    # 首先将 Markdown 转换为 HTML
+    full_html_content = CommonMarkdown.get_markdown(article.body)
+    logger.debug(f"load_article_detail: Full HTML content length after markdown: {len(full_html_content)}")
+    
+    soup = BeautifulSoup(full_html_content, 'html.parser')
+    
+    gallery_media_elements_strings = []
+
+    # Process images first
+    for img_tag in list(soup.find_all('img')):
+        img_src = img_tag.get('src')
+        img_alt = img_tag.get('alt', '')
+        if img_src:
+            fancybox_link = soup.new_tag("a", href=img_src)
+            fancybox_link['data-fancybox'] = "gallery"
+            if img_alt:
+                fancybox_link['data-caption'] = img_alt
+            
+            # Replace the img tag with the new fancybox_link containing the img
+            img_tag.replace_with(fancybox_link)
+            fancybox_link.append(img_tag) # Put the original img back inside the new <a>
+            
+            gallery_media_elements_strings.append(str(fancybox_link))
+            if not isindex: # For detail page, remove images from the main content for initial load
+                fancybox_link.decompose()
+        else:
+            img_tag.decompose()
+
+    # Process videos
+    for video_tag in list(soup.find_all('video')):
+        video_src = video_tag.get('src')
+        if not video_src:
+            source_tag = video_tag.find('source')
+            if source_tag:
+                video_src = source_tag.get('src')
+        
+        if video_src:
+            fancybox_link = soup.new_tag("a", href=video_src)
+            fancybox_link['data-fancybox'] = "gallery"
+            fancybox_link['data-type'] = "html5video"
+            fancybox_link['data-width'] = "535.8"
+            fancybox_link['data-height'] = "300"
+            
+            # Replace the video tag with the new fancybox_link containing the video
+            video_tag.replace_with(fancybox_link)
+            fancybox_link.append(video_tag) # Put the original video back inside the new <a>
+            
+            # Videos are always kept inline in the main text body (wrapped for Fancybox).
+            # They are NOT added to processed_article_media_elements_for_gallery.
+        else:
+            video_tag.decompose()
+
+    # At this point, `soup` contains the original HTML with img/video tags replaced by their Fancybox-wrapped <a> versions.
+    # For detail page, all wrapped image tags have been removed from the main content, but wrapped video tags remain.
+    # For list page, all wrapped image and video tags are still in the main content.
+
+    # Now, handle the content based on whether it's a list page or detail page
+    processed_article_text_body = ""
+    processed_article_media_elements_for_gallery = [] 
+
+    if isindex: # For list page
+        # Create a deep copy of the soup to remove media elements for text truncation
+        temp_soup_for_text_truncation = BeautifulSoup(str(soup), 'html.parser')
+        # Remove all fancybox links (which now wrap both img and video)
+        for fancybox_a_tag in list(temp_soup_for_text_truncation.find_all('a', attrs={'data-fancybox': 'gallery'})):
+            fancybox_a_tag.decompose()
+        
+        # Final cleanup for empty tags in the list page text content
+        final_list_page_text_soup = BeautifulSoup(str(temp_soup_for_text_truncation), 'html.parser')
+        empty_tags_to_remove = ['p', 'div', 'br', 'span', 'strong', 'em', 'a']
+        for tag_name in empty_tags_to_remove:
+            for tag in final_list_page_text_soup.find_all(tag_name):
+                if not tag.get_text(strip=True) and not tag.find_all(True):
+                    tag.decompose()
+        
+        processed_article_text_body = truncatechars_html(str(final_list_page_text_soup), blogsetting.article_sub_length)
+        
+        # 列表页图片限制For list page, processed_article_media_elements_for_gallery includes both images and videos, limited
+        max_media_for_list = 6
+        processed_article_media_elements_for_gallery = gallery_media_elements_strings[:max_media_for_list]
+
+    else: # Detail page
+        # For detail page, the main text body should be the soup after only images have been decomposed.
+        final_detail_page_text_soup = BeautifulSoup(str(soup), 'html.parser')
+        empty_tags_to_remove = ['p', 'div', 'br', 'span', 'strong', 'em', 'a']
+        for tag_name in empty_tags_to_remove:
+            for tag in final_detail_page_text_soup.find_all(tag_name):
+                if not tag.get_text(strip=True) and not tag.find_all(True):
+                    tag.decompose()
+        processed_article_text_body = str(final_detail_page_text_soup)
+
+        # For detail page, processed_article_media_elements_for_gallery is always empty for initial load,
+        # as all media will be loaded via AJAX for images, and videos are inline.
+        processed_article_media_elements_for_gallery = []
+        
+    logger.debug(f"load_article_detail: Final processed_article_text_body length: {len(processed_article_text_body)}")
+    logger.debug(f"load_article_detail: Number of processed_article_media_elements_for_gallery: {len(processed_article_media_elements_for_gallery)}")
 
     return {
         'article': article,
         'isindex': isindex,
         'user': user,
         'open_site_comment': blogsetting.open_site_comment,
+        'processed_article_text_body': mark_safe(processed_article_text_body),
+        'processed_article_media_elements': processed_article_media_elements_for_gallery, 
+        'exclude_initial_images': exclude_initial_images,
     }
 
 

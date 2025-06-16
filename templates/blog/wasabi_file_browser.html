@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wasabi文件浏览器</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 15px; }
+        .breadcrumb {
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .dir-item, .file-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            background-color: #fff;
+        }
+        .dir-item:hover, .file-item:hover {
+            background-color: #f0f0f0;
+        }
+        .dir-item::before {
+            content: '📁'; /* Folder icon */
+            margin-right: 10px;
+        }
+        .file-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .file-item img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .file-list {
+            max-height: 450px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 5px;
+            margin-bottom: 15px;
+            background-color: #fdfdfd;
+        }
+        .selected {
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>选择Wasabi文件</h1>
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div class="file-list" id="fileList">
+        加载中...
+    </div>
+    <div style="margin-bottom: 10px;">
+        <input type="checkbox" id="selectAllCheckbox"> <label for="selectAllCheckbox">全选/取消全选</label>
+    </div>
+    <button id="insertSelectedButton" disabled>插入选中文件</button>
+
+    <script>
+        // DEBUG_VERSION_CHECK: 202506121400 - Ensure this line is present in browser source
+        var currentPath = ''; // Track current directory path
+        var selectedFiles = new Map(); // Map to store selected file URLs and names
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function loadFiles(path) {
+            currentPath = path;
+            selectedFiles.clear(); // Clear selections when navigating
+            $('#insertSelectedButton').prop('disabled', true); // Disable button
+            $('#selectAllCheckbox').prop('checked', false); // Uncheck select all
+            updateBreadcrumb(); // Update breadcrumb display
+
+            $.ajax({
+                url: '/wasabi-file-list-json/?path=' + encodeURIComponent(path), // Pass path to backend
+                method: 'GET',
+                success: function(data) {
+                    var fileListDiv = $('#fileList');
+                    fileListDiv.empty();
+
+                    if (currentPath !== '') {
+                        var parentPath = currentPath.split('/').slice(0, -2).join('/');
+                        if (parentPath !== '') parentPath += '/'; // Ensure trailing slash for non-root
+                        var upItem = $('<div class="dir-item"><span>.. (返回上一级)</span></div>');
+                        upItem.on('click', function() {
+                            loadFiles(parentPath);
+                        });
+                        fileListDiv.append(upItem);
+                    }
+
+                    if (data.dirs && data.dirs.length > 0) {
+                        data.dirs.forEach(function(dir) {
+                            var dirItem = $('<div class="dir-item"><span>' + dir + '</span></div>');
+                            dirItem.on('click', function() {
+                                loadFiles(currentPath + dir);
+                            });
+                            fileListDiv.append(dirItem);
+                        });
+                    }
+
+                    if (data.files && data.files.length > 0) {
+                        data.files.forEach(function(file) {
+                            var fileItem = $('<div class="file-item"></div>');
+                            var isImage = /\.(jpeg|jpg|png|gif|webp)(\?.*)?$/i.test(file.url);
+                            var checkbox = $('<input type="checkbox" class="file-checkbox">');
+                            checkbox.data('url', file.url);
+                            checkbox.data('name', file.name);
+
+                            checkbox.on('change', function() {
+                                console.log("DEBUG-CHECKBOX: Checkbox change event triggered.");
+                                console.log("DEBUG-CHECKBOX: $(this).is(':checked') =", $(this).is(':checked'));
+                                console.log("DEBUG-CHECKBOX: checkbox.data('url') =", $(this).data('url'));
+                                console.log("DEBUG-CHECKBOX: checkbox.data('name') =", $(this).data('name'));
+
+                                if ($(this).is(':checked')) {
+                                    selectedFiles.set($(this).data('url'), $(this).data('name'));
+                                    console.log("DEBUG-CHECKBOX: Added to selectedFiles. Current size:", selectedFiles.size, "Map:", selectedFiles);
+                                } else {
+                                    selectedFiles.delete($(this).data('url'));
+                                    console.log("DEBUG-CHECKBOX: Removed from selectedFiles. Current size:", selectedFiles.size, "Map:", selectedFiles);
+                                }
+                                $('#insertSelectedButton').prop('disabled', selectedFiles.size === 0);
+                                // Update selectAllCheckbox status
+                                $('#selectAllCheckbox').prop('checked', $('.file-checkbox:checked').length === $('.file-checkbox').length && $('.file-checkbox').length > 0);
+                            });
+
+                            fileItem.append(checkbox);
+                            if (isImage) {
+                                fileItem.append('<img src="' + file.url + '" alt="' + file.name + '">');
+                            }
+                            fileItem.append('<span>' + file.name + '</span>');
+                            fileListDiv.append(fileItem);
+                        });
+                    } else if (!data.dirs || data.dirs.length === 0) {
+                        fileListDiv.append('<p>没有文件可显示。</p>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#fileList').empty().append('<p>加载文件失败: ' + xhr.responseText + '</p>');
+                }
+            });
+        }
+
+        function updateBreadcrumb() {
+            var breadcrumbDiv = $('#breadcrumb');
+            breadcrumbDiv.empty();
+            var pathParts = currentPath.split('/').filter(p => p !== '');
+
+            if (pathParts.length === 0) {
+                breadcrumbDiv.append('<span>根目录</span>');
+            } else {
+                var fullPath = '';
+                breadcrumbDiv.append('<a href="#" data-path="">根目录</a>');
+                pathParts.forEach(function(part) {
+                    fullPath += part + '/';
+                    breadcrumbDiv.append('<span> / </span>');
+                    breadcrumbDiv.append('<a href="#" data-path="' + fullPath + '">' + part + '</a>');
+                });
+            }
+            $('#breadcrumb a').on('click', function(e) {
+                e.preventDefault();
+                loadFiles($(this).data('path'));
+            });
+        }
+
+
+        $(document).ready(function() {
+            console.log("DEBUG-HTML: window.location.search =", window.location.search);
+            // Check if CKEditor parameter is missing and add it if so
+            var currentUrl = window.location.href;
+            if (currentUrl.indexOf('CKEditor=') === -1) {
+                var newUrl = currentUrl;
+                if (newUrl.indexOf('?') === -1) {
+                    newUrl += '?';
+                } else {
+                    newUrl += '&';
+                }
+                newUrl += 'CKEditor=id_body';
+                console.log("DEBUG-HTML: Redirecting to:", newUrl);
+                window.location.replace(newUrl); // Use replace to avoid adding to history
+                return; // Stop execution to allow redirect
+            }
+
+            loadFiles('');
+
+            $('#selectAllCheckbox').on('change', function() {
+                var isChecked = $(this).is(':checked');
+                $('.file-checkbox').prop('checked', isChecked).change(); // Trigger change event to update selectedFiles Map
+            });
+
+            $('#insertSelectedButton').on('click', function() {
+                console.log("DEBUG-BUTTON-CLICK: Insert Selected Button clicked."); // New debug log
+                if (selectedFiles.size > 0) {
+                    var funcNum = new URLSearchParams(window.location.search).get('CKEditorFuncNum');
+                    var editorName = null;
+                    var params = window.location.search.substring(1).split('&'); // Remove '?' and split by '&'
+                    for (var i = 0; i < params.length; i++) {
+                        var param = params[i].split('=');
+                        if (decodeURIComponent(param[0]) === 'CKEditor') {
+                            editorName = decodeURIComponent(param[1]);
+                            break;
+                        }
+                    }
+                    console.log("DEBUG-MANUAL-PARSE: editorName =", editorName); // New debug log
+                    var editorInstance = null;
+
+                    console.log("DEBUG-POPUP: funcNum =", funcNum);
+                    console.log("DEBUG-POPUP: editorName =", editorName);
+                    console.log("DEBUG-POPUP: window.opener =", window.opener);
+
+                    if (window.opener && window.opener.CKEDITOR) {
+                        console.log("DEBUG-POPUP: window.opener.CKEDITOR exists.");
+                        console.log("DEBUG-POPUP: window.opener.CKEDITOR.instances =", window.opener.CKEDITOR.instances);
+                        if (editorName && window.opener.CKEDITOR.instances[editorName]) {
+                            editorInstance = window.opener.CKEDITOR.instances[editorName];
+                            console.log("DEBUG-POPUP: editorInstance found.", editorInstance);
+                        } else {
+                            console.error('DEBUG-POPUP: CKEditor instance NOT found for editorName:', editorName);
+                            console.log("DEBUG-POPUP: window.opener.CKEDITOR.instances contents:", window.opener.CKEDITOR.instances);
+                        }
+                    }
+                    else {
+                        console.error('DEBUG-POPUP: window.opener.CKEDITOR does NOT exist.');
+                    }
+
+                    if (!editorInstance) {
+                        console.error("DEBUG-POPUP: editorInstance is null or undefined."); // New debug log
+                        alert('无法连接到 CKEditor 实例。请确保 CKEditor 已完全加载。');
+                        return; // Stop execution if editor instance is not found
+                    }
+
+                    var allHtmlToInsert = ''; // Accumulate all HTML here
+                    selectedFiles.forEach(function(name, url) {
+                        console.log("DEBUG-INSERTION-URL: Processing URL:", url); // New debug log
+                        var isImage = /\.(jpeg|jpg|png|gif|webp)(\?.*)?$/i.test(url);
+                        var isVideo = /\.(mp4|webm|ogg)(\?.*)?$/i.test(url); // Add video formats
+                        console.log("DEBUG-INSERTION-TYPE: isImage=", isImage, "isVideo=", isVideo); // New debug log
+                        var itemHtml = ''; // HTML for current item
+
+                        if (isImage) {
+                            itemHtml = '<img src="' + url + '" alt="' + name + '" style="300px; height:300px;">';
+                        } else if (isVideo) {
+                            itemHtml = '<video controls src="' + url + '" style="300px; height:300px;"><source src="' + url + '">Your browser does not support the video tag.</video>';
+                        } else {
+                            // Default to a link if it's neither image nor video
+                            itemHtml = '<a href="' + url + '">' + name + '</a>';
+                        }
+                        allHtmlToInsert += itemHtml + '<p></p>'; // Add item HTML and a paragraph break
+                    });
+
+                    if (allHtmlToInsert) {
+                        editorInstance.insertHtml(allHtmlToInsert); // Insert all at once
+                        console.log("DEBUG-INSERTION: Inserted ALL HTML:", allHtmlToInsert);
+                    }
+
+                    // All files processed, now close the window.
+                    window.close(); // Temporarily commented out for debugging
+                } else {
+                    alert('请选择至少一个文件。');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

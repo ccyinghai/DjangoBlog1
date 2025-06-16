@@ -4,6 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 from django.forms import widgets
 from django.utils.translation import gettext_lazy as _
+from captcha.fields import CaptchaField
 from . import utils
 from .models import BlogUser
 
@@ -36,9 +37,11 @@ class RegisterForm(UserCreationForm):
             raise ValidationError(_("email already exists"))
         return email
 
+    captcha = CaptchaField()
+
     class Meta:
         model = get_user_model()
-        fields = ("username", "email")
+        fields = ("username", "email", "captcha")
 
 
 class ForgetPasswordForm(forms.Form):

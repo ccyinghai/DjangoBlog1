@@ -6,8 +6,55 @@ html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockq
     vertical-align: baseline;
 }
 
+/* Theme Variables */
+:root {
+    --body-bg-color: rgb(255, 255, 255); /* Changed to opaque white to match site background */
+    --body-text-color: #444;
+    --site-bg-color: rgb(255, 255, 255); /* Changed to opaque white to match body background */
+    --site-border-color: rgba(200, 200, 200, 0.5);
+    --header-title-color: #515151;
+    --header-description-color: #757575;
+    --link-color: #21759b;
+    --link-hover-color: #0f3647;
+    --widget-title-color: #636363;
+    --widget-text-color: #757575;
+    --footer-text-color: #686868;
+    --entry-title-color: #444;
+    --entry-meta-color: #757575;
+    --input-background-color: transparent; /* New variable for input background */
+    --input-border-color: #ccc; /* New variable for input border */
+}
+
+html.dark-mode { /* Changed from body.dark-mode to html.dark-mode */
+    --body-bg-color: rgb(0, 0, 0); /* Changed to opaque pure black to match site background */
+    --body-text-color: #ddd;
+    --site-bg-color: rgb(0, 0, 0); /* Changed to opaque pure black to match body background */
+    --site-border-color: rgba(70, 70, 70, 0.5);
+    --header-title-color: #eee;
+    --header-description-color: #bbb;
+    --link-color: #6a9edb;
+    --link-hover-color: #9ac2ed;
+    --widget-title-color: #bbb;
+    --widget-text-color: #aaa;
+    --footer-text-color: #aaa;
+    --entry-title-color: #eee;
+    --entry-meta-color: #bbb;
+    --input-background-color: transparent; /* New variable for input background */
+    --input-border-color: #777; /* New variable for input border */
+}
+
 body {
     line-height: 1;
+    -webkit-text-size-adjust: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    vertical-align: baseline;
+    font-size: 1rem;
+    text-rendering: optimizeLegibility;
+    color: var(--body-text-color);
+    background-color: var(--body-bg-color);
+    font-family: "Open Sans",Helvetica,Arial,sans-serif;
 }
 
 ol,
@@ -179,6 +226,13 @@ textarea {
     font-family: inherit;
     padding: 6px;
     padding: 0.428571429rem;
+}
+
+/* Specific styles for the search input */
+#q {
+    background-color: var(--input-background-color);
+    border: 1px solid var(--input-border-color);
+    color: var(--body-text-color); /* Ensure text color changes with theme */
 }
 
 button,
@@ -539,7 +593,8 @@ a:hover {
 .site {
     padding: 0 24px;
     padding: 0 1.714285714rem;
-    background-color: #fff;
+    background-color: var(--site-bg-color); /* Changed to transparent */
+    border: 1px solid var(--site-border-color); /* Added light gray border */
 }
 
 .site-content {
@@ -565,14 +620,14 @@ a:hover {
 
 .site-header h1 a,
 .site-header h2 a {
-    color: #515151;
+    color: var(--header-title-color); /* Use variable for header title color */
     display: inline-block;
     text-decoration: none;
 }
 
 .site-header h1 a:hover,
 .site-header h2 a:hover {
-    color: #21759b;
+    color: var(--link-hover-color); /* Use variable for link hover color */
 }
 
 .site-header h1 {
@@ -588,7 +643,7 @@ a:hover {
     font-size: 13px;
     font-size: 0.928571429rem;
     line-height: 1.846153846;
-    color: #757575;
+    color: var(--header-description-color); /* Use variable for header description color */
 }
 
 .header-image {
@@ -1884,7 +1939,7 @@ img#wpstats {
 /* Minimum width of 960 pixels. */
 @media screen and (min-width: 960px) {
     body {
-        background-color: #e6e6e6;
+        background-color: var(--body-bg-color); /* Changed to use variable */
     }
 
     body .site {
@@ -1894,7 +1949,9 @@ img#wpstats {
         margin-top: 3.428571429rem;
         margin-bottom: 48px;
         margin-bottom: 3.428571429rem;
-        box-shadow: 0 2px 6px rgba(100, 100, 100, 0.3);
+        box-shadow: none; /* Removed box-shadow */
+        background-color: var(--site-bg-color); /* Changed to transparent */
+        border: 1px solid var(--site-border-color); /* Added light gray border */
     }
 
     body.custom-background-empty {
@@ -2501,4 +2558,65 @@ li #reply-title {
     height: 1px;
     border: none;
     /*border-top: 1px dashed #f5d6d6;*/
+}
+
+/* Custom styles for moving Batch Upload Files module */
+div.grp-module:has(#batchfileupload) {
+    position: relative; /* Set position to relative to serve as reference for absolute positioning */
+    margin-top: 20px; /* Add some space above */
+}
+
+div.field-is_premium {
+    position: relative; /* Set position to relative to serve as reference for absolute positioning */
+    /* We will position the batch upload module relative to this or a common parent */
+}
+
+/* 用于统一图片和视频的尺寸 */
+.content-image,
+.content-video {
+    max-width: 100%;    /* 确保图片和视频不超过其父容器的宽度 */
+    height: auto;       /* 默认保持宽高比 */
+    display: block;     /* 避免底部多余的空白，并允许margin: auto居中 */
+    margin-left: auto;  /* 水平居中 */
+    margin-right: auto; /* 水平居中 */
+    /* 添加以下规则以限制高度并调整内容适应方式 */
+    max-height: 400px; /* 您可以根据需要调整这个值，例如设置为一个比当前高度小三分之一的像素值 */
+    object-fit: cover; /* 如果宽高比不匹配，内容会被裁剪以填充容器 */
+    /* object-fit: contain;  如果您希望内容完整显示，可能会留白，可以尝试这个 */
+}
+
+/* 针对图片进行更精细的控制 */
+.content-image {
+    /* 如果您希望图片有一个固定的最大宽度，可以取消注释 */
+    /* max-width: 700px; */
+}
+
+/* 针对视频进行更精细的控制 */
+.content-video {
+    /* 如果您希望视频有一个固定的最大宽度，可以取消注释 */
+    /* max-width: 800px; */
+}
+
+/* New styles for theme mode toggle button */
+.theme-mode-toggle-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+.theme-mode-toggle-container a {
+    font-size: 24px; /* Adjust size as needed */
+    line-height: 1;
+    text-decoration: none;
+    color: var(--header-title-color); /* Use theme variable for color */
+}
+
+.theme-mode-toggle-container a:hover {
+    color: var(--link-hover-color);
+}
+
+/* Ensure #page is relatively positioned */
+#page {
+    position: relative;
 }

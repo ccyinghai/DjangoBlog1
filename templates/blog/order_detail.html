@@ -1,0 +1,61 @@
+{% extends 'share_layout/base.html' %}
+{% load i18n %}
+{% load blog_tags %}
+
+{% block header %}
+    <title>{% trans 'Order Detail' %}</title>
+{% endblock %}
+
+{% block content %}
+<div id="primary" class="site-content">
+    <div id="content" role="main">
+        <h1>{% trans '入驻详情' %}</h1>
+
+        {% if order %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                <h4 class="my-0 font-weight-normal">{% trans '入驻 ID:' %} {{ order.order_id }}</h4>
+            </div>
+            <div class="card-body">
+                <p>{% trans '宗门地位:' %} {{ order.membership_type.name }}</p>
+                <p>{% trans '灵石数量:' %} ¥{{ order.amount }}</p>
+                <p>{% trans '入驻时间:' %} {% timeformat order.creation_time %}</p>
+                <p>{% trans '状态:' %} {% if order.is_paid %}{% trans '已进驻' %}{% else %}{% trans '待进驻' %}{% endif %}</p>
+            </div>
+        </div>
+
+        <h2>{% trans '兑换进入资格' %}</h2>
+        {% if redemption_message %}
+            <div class="alert {% if 'successfully' in redemption_message or '成功' in redemption_message %}alert-success{% else %}alert-danger{% endif %}" role="alert">
+                {{ redemption_message }}
+            </div>
+        {% endif %}
+
+        {% if is_member %}
+            <div class="alert alert-info" role="alert">
+                {% trans '您目前已进驻宗门。' %}
+                {% if request.user.membership.end_date %}
+                    {% trans '您的宗门供奉期限至:' %} {% timeformat request.user.membership.end_date %}
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <form method="post" class="form-inline">
+            {% csrf_token %}
+            <div class="form-group mx-sm-3 mb-2">
+                <label for="redemptionCode" class="sr-only">{% trans '兑换令牌' %}</label>
+                <input type="text" class="form-control" id="redemptionCode" name="redemption_code" placeholder="{% trans '输入你的令牌号' %}" required>
+            
+            <button type="submit" class="btn btn-primary mb-2">{% trans '兑换' %}</button>
+        </div>
+        </form>
+
+        {% else %}
+        <p>{% trans 'Order not found or you do not have permission to view it.' %}</p>
+        {% endif %}
+
+    </div><!-- #content -->
+</div><!-- #primary -->
+{% endblock %}
+
+{% load_sidebar user "p" %} 

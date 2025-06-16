@@ -59,4 +59,28 @@ urlpatterns = [
         r'clean',
         views.clean_cache_view,
         name='clean'),
+    path(
+        r'video/upload/', 
+        views.upload_video, 
+        name='upload_video'),
+    path(
+        r'video/<int:video_id>.html',
+        views.VideoDetailView.as_view(),
+        name='video_detail'),
+    path(
+        r'membership/',
+        views.membership_list,
+        name='membership_list'),
+    path(
+        r'membership/create_order/',
+        views.create_order,
+        name='create_order'),
+    path(
+        r'membership/order/<str:order_id>/',
+        views.order_detail,
+        name='order_detail'),
+    path(
+        r'membership/order/<str:order_id>/pay/',
+        views.simulate_pay,
+        name='simulate_pay'),
 ]

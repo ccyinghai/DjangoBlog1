@@ -1,5 +1,6 @@
 import logging
 from abc import abstractmethod
+import re # Import the regular expression module
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,7 +8,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
-from mdeditor.fields import MDTextField
+from ckeditor.fields import RichTextField
+from ckeditor_uploader.fields import RichTextUploadingField
 from uuslug import slugify
 
 from djangoblog.utils import cache_decorator, cache
@@ -44,8 +46,10 @@ class BaseModel(models.Model):
             super().save(*args, **kwargs)
 
     def get_full_url(self):
-        site = get_current_site().domain
-        url = "https://{site}{path}".format(site=site,
+        # 确保在访问site对象时，其已经完全初始化
+        from django.contrib.sites.shortcuts import get_current_site
+        site = get_current_site(request=None) # get_current_site 可以接受request，这里传入None以适应模型方法
+        url = "https://{site_domain}{path}".format(site_domain=site.domain,
                                             path=self.get_absolute_url())
         return url
 
@@ -72,7 +76,7 @@ class Article(BaseModel):
         ('p', _('Page')),
     )
     title = models.CharField(_('title'), max_length=200, unique=True)
-    body = MDTextField(_('body'))
+    body = RichTextUploadingField(verbose_name="内容", blank=True, null=True)
     pub_time = models.DateTimeField(
         _('publish time'), blank=False, null=False, default=now)
     status = models.CharField(
@@ -103,12 +107,66 @@ class Article(BaseModel):
         blank=False,
         null=False)
     tags = models.ManyToManyField('Tag', verbose_name=_('tag'), blank=True)
+    videos = models.ManyToManyField('Video', blank=True, verbose_name=_('related videos'))
+    is_premium = models.BooleanField(_('is premium'), default=False)
 
     def body_to_string(self):
         return self.body
 
     def __str__(self):
         return self.title
+
+    def delete(self, *args, **kwargs):
+        """
+        Override delete to delete files referenced in the body.
+        """
+        import re
+        from django.conf import settings
+        import os
+
+        # Regex to find Markdown images: ![alt text](url)
+        markdown_image_pattern = r'!\[.*?\]\((.*?)\)'
+        # Regex to find HTML video sources: <video src="url">
+        html_video_pattern = r'<video.*?src="(.*?)".*?>'
+
+        # Find all URLs in the body
+        image_urls = re.findall(markdown_image_pattern, self.body)
+        video_urls = re.findall(html_video_pattern, self.body)
+        all_urls = image_urls + video_urls
+
+        media_prefix = settings.MEDIA_URL
+        attachment_dir = 'article_attachments/'
+
+        for url in all_urls:
+            # Clean up URL to remove potential quotes or whitespace
+            url = url.strip('\'" ')
+            
+            # Check if the URL is a local media file in the attachments directory
+            if url.startswith(media_prefix) and attachment_dir in url:
+                # Construct the file path on the server
+                # Remove the leading MEDIA_URL and join with MEDIA_ROOT
+                file_path = os.path.join(settings.MEDIA_ROOT, url[len(media_prefix):])
+                
+                # Ensure the path is normalized and secure (though regex should limit this)
+                # This step is a safeguard, actual security relies on MEDIA_ROOT configuration
+                normalized_media_root = os.path.normpath(settings.MEDIA_ROOT)
+                normalized_file_path = os.path.normpath(file_path)
+
+                if normalized_file_path.startswith(normalized_media_root):
+                    if os.path.exists(normalized_file_path):
+                        try:
+                            os.remove(normalized_file_path)
+                            print(f"Deleted file: {normalized_file_path}") # For debugging
+                        except OSError as e:
+                            print(f"Error deleting file {normalized_file_path}: {e}") # For error logging
+                    else:
+                         print(f"File not found for deletion: {normalized_file_path}") # For debugging
+                else:
+                    print(f"Attempted to delete file outside MEDIA_ROOT: {normalized_file_path}") # Security warning
+
+
+        # Call the original delete method to delete the Article instance
+        super().delete(*args, **kwargs)
 
     class Meta:
         ordering = ['-article_order', '-pub_time']
@@ -250,6 +308,35 @@ class Tag(BaseModel):
         verbose_name_plural = verbose_name
 
 
+class Video(BaseModel):
+    """视频模型"""
+    title = models.CharField(_('title'), max_length=200)
+    video_file = models.FileField(_('video file'), upload_to='videos/')
+    upload_time = models.DateTimeField(_('upload time'), default=now)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name=_('author'),
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE)
+    views = models.PositiveIntegerField(_('views'), default=0)
+
+    class Meta:
+        ordering = ['-upload_time']
+        verbose_name = _('video')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse('blog:video_detail', kwargs={'video_id': self.id})
+
+    def viewed(self):
+        self.views += 1
+        self.save(update_fields=['views'])
+
+
 class Links(models.Model):
     """友情链接"""
 
@@ -363,3 +450,56 @@ class BlogSettings(models.Model):
         super().save(*args, **kwargs)
         from djangoblog.utils import cache
         cache.clear()
+
+
+class MembershipType(models.Model):
+    """会员类型模型"""
+    name = models.CharField(_('membership name'), max_length=50, unique=True)
+    price = models.DecimalField(_('price'), max_digits=10, decimal_places=2)
+    duration_months = models.IntegerField(_('duration in months'))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Membership Type')
+        verbose_name_plural = _('Membership Types')
+
+
+class Membership(models.Model):
+    """用户会员订阅模型"""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('user'))
+    membership_type = models.ForeignKey(MembershipType, on_delete=models.SET_NULL, null=True, verbose_name=_('membership type'))
+    start_date = models.DateTimeField(_('start date'), default=now)
+    end_date = models.DateTimeField(_('end date'))
+    is_active = models.BooleanField(_('is active'), default=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.membership_type.name}"
+
+    class Meta:
+        verbose_name = _('Membership')
+        verbose_name_plural = _('Memberships')
+
+    def is_membership_active(self):
+        """检查会员是否在有效期内"""
+        return self.is_active and self.end_date >= now()
+
+
+class Order(models.Model):
+    """订单模型"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('user'))
+    membership_type = models.ForeignKey('MembershipType', on_delete=models.SET_NULL, null=True, verbose_name=_('membership type'))
+    order_id = models.CharField(_('order id'), max_length=100, unique=True)
+    amount = models.DecimalField(_('amount'), max_digits=10, decimal_places=2)
+    creation_time = models.DateTimeField(_('creation time'), default=now)
+    is_paid = models.BooleanField(_('is paid'), default=False)
+    paid_time = models.DateTimeField(_('paid time'), null=True, blank=True)
+
+    def __str__(self):
+        return f"Order {self.order_id} for {self.user.username}"
+
+    class Meta:
+        ordering = ['-creation_time']
+        verbose_name = _('Order')
+        verbose_name_plural = _('Orders')

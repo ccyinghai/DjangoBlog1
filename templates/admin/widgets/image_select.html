@@ -1,0 +1,18 @@
+{% load static %}
+<div class="image-select-widget">
+    <input type="hidden" name="{{ widget.name }}" id="{{ widget.id }}" value="{{ widget.value }}">
+    <div class="image-preview-container" id="image-preview-{{ widget.id }}">
+        {% if widget.current_images %}
+            {% for image_url in widget.current_images %}
+                <div class="image-preview-item">
+                    <img src="{{ image_url }}" alt="Selected Image">
+                    <span class="remove-image" data-image-url="{{ image_url }}">&times;</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    <button type="button" class="button image-select-button" data-input-id="{{ widget.id }}" data-multiple="true">
+        选择图片
+    </button>
+    <p class="help">最多可选择9张图片。</p>
+</div>

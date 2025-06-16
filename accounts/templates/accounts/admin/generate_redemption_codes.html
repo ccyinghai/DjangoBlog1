@@ -1,0 +1,50 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='accounts' %}">{% translate 'Accounts' %}</a>
+    &rsaquo; <a href="{% url 'admin:accounts_redemptioncode_changelist' %}">{% translate 'Redemption Codes' %}</a>
+    &rsaquo; {% translate 'Generate Redemption Codes' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form action="" method="post" id="generate-codes-form">{% csrf_token %}
+        <div>
+            {% if errors %}
+                <ul class="errorlist">
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <fieldset class="module aligned">
+                <h2>{% translate 'Generate Redemption Codes' %}</h2>
+                <div class="form-row">
+                    <label class="required" for="id__count">{% translate 'Number of codes to generate:' %}</label>
+                    <input type="number" name="_count" id="id__count" value="10" min="1" max="100">
+                    <p class="help">{% translate 'Specify how many codes to generate (default: 10).' %}</p>
+                </div>
+                <div class="form-row">
+                    <label class="required" for="id__membership_type">{% translate 'Membership Type:' %}</label>
+                    <select name="_membership_type" id="id__membership_type">
+                        <option value="">---------
+                        {% for value, label in membership_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="help">{% translate 'Select the membership type for these codes.' %}</p>
+                </div>
+            </fieldset>
+
+            <div class="submit-row">
+                <input type="submit" value="{% translate 'Generate Codes' %}" class="default" name="_generate">
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

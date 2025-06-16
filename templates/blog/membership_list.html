@@ -1,0 +1,55 @@
+{% extends 'share_layout/base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load blog_tags %}
+{% load static %}
+
+{% block header %}
+    <title>{% trans '套餐类型' %}</title>
+{% endblock %}
+
+{% block content %}
+<div id="primary" class="site-content">
+    <div id="content" role="main">
+        <h1 class="mb-4 text-center">{% trans '进驻宗门' %}</h1>
+        <h1>------------------------</h1>
+        <h1>  </h1>
+
+        {% if membership_types %}
+            <div class="row justify-content-center">
+                {% for membership_type in membership_types %}
+                    <div class="col-md-4">
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-header">
+                                <h4 class="my-0 font-weight-normal">{{ membership_type.name }}</h4>
+                            </div>
+                            <div class="card-body text-center">
+                                <h1 class="card-title pricing-card-title">¥{{ membership_type.price }} <small class="text-muted">/{% if membership_type.duration_months == 1 %}月{% elif membership_type.duration_months == 3 %}季{% elif membership_type.duration_months == 12 %}年{% else %}{{ membership_type.duration_months }}个月{% endif %}</small></h1>
+                                <ul class="list-unstyled mt-3 mb-4">
+                                    <li>{% trans '预览所有宗内秘要' %}</li>
+                                    {# Add more benefits here #}
+                                </ul>
+                                {# Add a form to initiate purchase #}
+                                <form method="post" action="{% url 'blog:create_order' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="membership_type_id" value="{{ membership_type.id }}">
+                                    <button type="submit" class="btn btn-lg btn-block btn-outline-primary">{% trans '立即成为' %}</button>
+                                    
+                                </form>
+                                <a> _ </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-center">{% trans '目前您不是会员' %}</p>
+        {% endif %}
+
+    </div><!-- #content -->
+</div><!-- #primary -->
+{% endblock %}
+
+{% block sidebar %}
+{% load_sidebar user "p" %}
+{% endblock %} 

@@ -2,6 +2,7 @@ from django.contrib.admin import AdminSite
 from django.contrib.admin.models import LogEntry
 from django.contrib.sites.admin import SiteAdmin
 from django.contrib.sites.models import Site
+from django.urls import path
 
 from accounts.admin import *
 from blog.admin import *
@@ -27,15 +28,13 @@ class DjangoBlogAdminSite(AdminSite):
     def has_permission(self, request):
         return request.user.is_superuser
 
-    # def get_urls(self):
-    #     urls = super().get_urls()
-    #     from django.urls import path
-    #     from blog.views import refresh_memcache
-    #
-    #     my_urls = [
-    #         path('refresh/', self.admin_view(refresh_memcache), name="refresh"),
-    #     ]
-    #     return urls + my_urls
+    def get_urls(self):
+        urls = super().get_urls()
+
+        my_urls = [
+            path('accounts/redemptioncode/generate/', self.admin_view(generate_redemption_codes_view), name='accounts_redemptioncode_generate'),
+        ]
+        return my_urls + urls
 
 
 admin_site = DjangoBlogAdminSite(name='admin')
@@ -46,11 +45,13 @@ admin_site.register(Tag, TagAdmin)
 admin_site.register(Links, LinksAdmin)
 admin_site.register(SideBar, SideBarAdmin)
 admin_site.register(BlogSettings, BlogSettingsAdmin)
+admin_site.register(Order, OrderAdmin)
 
 admin_site.register(commands, CommandsAdmin)
 admin_site.register(EmailSendLog, EmailSendLogAdmin)
 
 admin_site.register(BlogUser, BlogUserAdmin)
+admin_site.register(RedemptionCode, RedemptionCodeAdmin)
 
 admin_site.register(Comment, CommentAdmin)
 
@@ -62,3 +63,5 @@ admin_site.register(OwnTrackLog, OwnTrackLogsAdmin)
 admin_site.register(Site, SiteAdmin)
 
 admin_site.register(LogEntry, LogEntryAdmin)
+
+admin_site.register(MembershipType)

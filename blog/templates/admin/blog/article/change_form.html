@@ -1,0 +1,61 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    {{ media.css }}
+
+    {# Link the CSS for jQuery File Upload #}
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/blueimp-file-upload@10.31.0/css/jquery.fileupload.min.css">
+
+    {# Place the script that defines window.batchUploadUrl BEFORE our custom script #}
+    <script>
+        // Define the batch upload URL here, accessible by mdeditor_filebrowser.js
+        // Using {% url %} tag for robustness
+        window.batchUploadUrl = "{% url 'blog:upload_attachment' %}";
+    </script>
+
+    {# Load our custom script AFTER the URL is defined and AFTER Mdeditor via media.js #}
+    {# IMPORTANT: Manually specify the static URL to rule out issues with {% static %} tag handling v= parameter #}
+    <script src="/static/blog/js/mdeditor_filebrowser.js?v=3"></script>
+
+{% endblock %}
+
+{% block field_sets %}
+    {% for fieldset in fieldsets %}
+        {% include "admin/includes/fieldset.html" %}
+    {% endfor %}
+
+    {# Add the batch file upload input element #}
+    <div class="form-row">
+        <label class="required">批量上传文件:</label>
+        <div class="field-box">
+            {# IMPORTANT: Ensure the name attribute matches the view's expectation ('files[]') #}
+            {# And the ID attribute matches the selector used in mdeditor_filebrowser.js ('batchfileupload') #}
+            <input id="batchfileupload" type="file" name="files[]" multiple>
+            {# You can add a progress bar element here if desired #}
+            {# <div id="progress"><div class="progress-bar"></div></div> #}
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block after_field_sets %}
+    {# media.js is moved to extrahead to ensure Mdeditor is loaded before our script #}
+    {# {{ media.js }} #}
+
+    {# The script block defining window.batchUploadUrl is moved to extrahead #}
+    {# Load our custom script AFTER Mdeditor #}
+    {# <script src="{% static 'blog/js/mdeditor_filebrowser.js' %}?v=2"></script> #}
+
+    {# The inline script block for initialization is no longer needed here #}
+    {# <script>
+        // Define the batch upload URL here, accessible by mdeditor_filebrowser.js
+        // window.batchUploadUrl = "{% url 'blog:upload_attachment' %}"; // Moved to extrahead
+
+        // Initialize batch upload after the DOM is ready and our script is loaded
+        // The initialization logic will be inside mdeditor_filebrowser.js now,
+        // triggered by $(document).ready()
+
+    </script> #}
+{% endblock %} 

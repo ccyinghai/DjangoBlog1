@@ -33,7 +33,7 @@ def get_redirecturl(request):
         return nexturl
     p = urlparse(nexturl)
     if p.netloc:
-        site = get_current_site().domain
+        site = get_current_site(request).domain
         if not p.netloc.replace('www.', '') == site.replace('www.', ''):
             logger.info('非法url:' + nexturl)
             return "/"
@@ -150,7 +150,7 @@ def emailconfirm(request, id, sign):
         id=oauthuser.id)
     login(request, author)
 
-    site = 'http://' + get_current_site().domain
+    site = 'http://' + get_current_site(request).domain
     content = _('''
      <p>Congratulations, you have successfully bound your email address. You can use
       %(oauthuser_type)s to directly log in to this website without a password.</p>
@@ -205,7 +205,7 @@ class RequireEmailView(FormView):
         oauthuser.save()
         sign = get_sha256(settings.SECRET_KEY +
                           str(oauthuser.id) + settings.SECRET_KEY)
-        site = get_current_site().domain
+        site = get_current_site(request).domain
         if settings.DEBUG:
             site = '127.0.0.1:8000'
         path = reverse('oauth:email_confirm', kwargs={

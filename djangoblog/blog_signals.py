@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.core.mail import EmailMultiAlternatives
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 from comments.models import Comment
@@ -15,6 +15,7 @@ from djangoblog.spider_notify import SpiderNotify
 from djangoblog.utils import cache, expire_view_cache, delete_sidebar_cache, delete_view_cache
 from djangoblog.utils import get_current_site
 from oauth.models import OAuthUser
+from blog.models import Article
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,12 @@ def oauth_user_login_signal_handler(sender, **kwargs):
         oauthuser.save()
 
     delete_sidebar_cache()
+
+
+@receiver(post_delete, sender=Article)
+def article_post_delete_callback(sender, instance, using, **kwargs):
+    logger.info(f"Article {instance.title} deleted. Clearing cache.")
+    cache.clear()
 
 
 @receiver(post_save)

@@ -1,22 +1,26 @@
 {% load blog_tags %}
 {% load cache %}
 {% load i18n %}
+{% load static %}
 <article id="post-{{ article.pk }} "
-         class="post-{{ article.pk }} post type-post status-publish format-standard hentry">
+         class="post-{{ article.pk }} post type-post status-publish format-standard hentry{% if isindex %} list-page{% endif %}">
     <header class="entry-header">
 
         <h1 class="entry-title">
             {% if  isindex %}
-                {% if article.article_order > 0 %}
-                    <a href="{{ article.get_absolute_url }}"
-                       rel="bookmark">【{% trans 'pin to top' %}】{{ article.title }}</a>
-                {% else %}
-                    <a href="{{ article.get_absolute_url }}"
-                       rel="bookmark">{{ article.title }}</a>
+                {# Explicitly generate list page title with link #}
+                {% if article.is_premium %}
+                <span style="float: right; color: red;font-size: 0.6em;pointer-events: none;"> [宗内秘要]</span>
+                
                 {% endif %}
 
+                <a href="{{ article.get_absolute_url }}"
+                   rel="bookmark">{{ article.title }}</a>
+
             {% else %}
-                {{ article.title }}
+                {# Display title with link and premium tag for detail page #}
+                <a href="{{ article.get_absolute_url }}"
+                   rel="bookmark">{{ article.title }}</a>
             {% endif %}
         </h1>
         <div class="comments-link">
@@ -32,9 +36,6 @@
                     </span>
                 </a>
             {% endif %}
-            <div style="float:right">
-                {{ article.views }} views
-            </div>
         </div><!-- .comments-link -->
         <br/>
         {% if article.type == 'a' %}
@@ -47,28 +48,44 @@
     </header><!-- .entry-header -->
 
     <div class="entry-content" itemprop="articleBody">
-        {% if  isindex %}
-            {{ article.body|custom_markdown|escape|truncatechars_content }}
-            <p class='read-more'><a
-                    href=' {{ article.get_absolute_url }}'>Read more</a></p>
-        {% else %}
-
-            {% if article.show_toc %}
+        {# Render the main article text body (including videos) #}
+        <div class="article">
+            {% if not isindex and article.show_toc %}
                 {% get_markdown_toc article.body as toc %}
                 <b>{% trans 'toc' %}:</b>
                 {{ toc|safe }}
 
                 <hr class="break_line"/>
             {% endif %}
-            <div class="article">
+            {{ processed_article_text_body }}
+        </div>
 
-                {{ article.body|custom_markdown|escape }}
+        {# Wrap the images in a separate media gallery #}
+        {% if processed_article_media_elements %}
+            <div class="article-media-gallery{% if isindex %} gallery-two-col{% endif %}" data-is-index="{{ isindex|yesno:'true,false' }}">
+                {% for media_element in processed_article_media_elements %}
+                    {{ media_element|safe }}
+                {% endfor %}
+            </div> {# End article-media-gallery #}
+        {% endif %}
 
-            </div>
+        {# Load more images button only for detail page #}
+        {% if not isindex %}
+            <div id="paginated-images-container"></div>
+            <button id="load-more-images" class="btn btn-primary mt-3" data-article-id="{{ article.id }}" data-page-num="1" style="display: none;">加载更多图片</button>
+        {% endif %}
+
+        {% if isindex %}
+             {# Place read more link after the gallery for list view #}
+             <p class='read-more'><a
+                    href=' {{ article.get_absolute_url }}'>Read more</a></p>
         {% endif %}
 
     </div><!-- .entry-content -->
 
     {% load_article_metas article user %}
+
+    {# Add the script for media gallery layout #}
+    <script src="{% static 'blog/js/article_media_layout.js' %}"></script>
 
 </article><!-- #post -->

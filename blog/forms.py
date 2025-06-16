@@ -3,6 +3,8 @@ import logging
 from django import forms
 from haystack.forms import SearchForm
 
+from .models import Video
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,3 +19,9 @@ class BlogSearchForm(SearchForm):
         if self.cleaned_data['querydata']:
             logger.info(self.cleaned_data['querydata'])
         return datas
+
+
+class VideoUploadForm(forms.ModelForm):
+    class Meta:
+        model = Video
+        fields = ['title', 'video_file']

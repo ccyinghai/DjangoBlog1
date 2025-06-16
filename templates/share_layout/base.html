@@ -17,6 +17,15 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width"/>
+    <script>
+        // Immediate theme application to prevent FOUC/FOLM
+        (function() {
+            const savedTheme = localStorage.getItem('themeMode');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
     {% block header %}
     {% endblock %}
     <link rel="profile" href="http://gmpg.org/xfn/11"/>
@@ -34,6 +43,7 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"/>
     <link rel="icon" href="/favicon.ico" type="image/x-icon"/>
     <link rel="apple-touch-icon" href="/favicon.ico"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css" />
     {% compress css %}
 
         <link rel='stylesheet' id='twentytwelve-style-css' href='{% static 'blog/css/style.css' %}' type='text/css'
@@ -44,8 +54,48 @@
         <link rel='stylesheet' id='twentytwelve-ie-css'  href='{% static 'blog/css/ie.css' %}' type='text/css' media='all' />
         <![endif]-->
         <link rel="stylesheet" href="{% static 'pygments/default.css' %}"/>
-        <link rel="stylesheet" href="{% static 'blog/css/nprogress.css' %}">
+        <link rel="stylesheet" href="{% static 'blog/css/nprogress.css' %}"/>
         {% block compress_css %}
+            <style>
+                body {
+                    /* Removed overflow: hidden; to allow body to scroll naturally */
+                }
+
+                .star {
+                    position: absolute;
+                    background: white;
+                    border-radius: 50%;
+                    animation: shoot 5s linear infinite, fadeOut 5s linear infinite;
+                    opacity: 0;
+                    transform: rotate(45deg);
+                }
+
+                @keyframes shoot {
+                    0% {
+                        transform: translate(0, 0) rotate(45deg);
+                        opacity: 0;
+                    }
+                    10% {
+                        opacity: 1;
+                    }
+                    100% {
+                        transform: translate(calc(100vw + 500px), calc(100vh + 500px)) rotate(45deg);
+                        opacity: 0;
+                    }
+                }
+
+                @keyframes fadeOut {
+                    0% {
+                        opacity: 1;
+                    }
+                    90% {
+                        opacity: 1;
+                    }
+                    100% {
+                        opacity: 0;
+                    }
+                }
+            </style>
         {% endblock %}
     {% endcompress %}
     {% if GLOBAL_HEADER %}
@@ -55,6 +105,13 @@
 
 <body class="home blog custom-font-enabled">
 <div id="page" class="hfeed site">
+    <!-- Dark/Light Mode Toggle Button -->
+    <div class="theme-mode-toggle-container">
+        <a href="#" id="theme-toggle-button" title="切换深色/浅色模式">
+            <span class="light-mode-icon">☪︎</span>
+            <span class="dark-mode-icon" style="display: none;">☼</span>
+        </a>
+    </div>
     <header id="masthead" class="site-header" role="banner">
         <hgroup>
             <h1 class="site-title"><a href="/" title="{{ SITE_NAME }}" rel="home">{{ SITE_NAME }}</a>
@@ -97,10 +154,8 @@
 
 
     </div><!-- #main .wrapper -->
-    {% include 'share_layout/footer.html' %}
 </div><!-- #page -->
 
-</body>
 <footer>
     <script src="//cdn.bootcss.com/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     {% compress js %}
@@ -110,9 +165,119 @@
         <script src="{% static 'blog/js/navigation.js' %}" type="application/javascript"></script>
         <script src="{% static 'mathjax/js/mathjax-config.js' %}" type="application/javascript"></script>
         {% block compress_js %}
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const body = document.body;
+                    const createStar = () => {
+                        const star = document.createElement('div');
+                        star.className = 'star';
+
+                        const size = Math.random() * 4.5 + 1.2; // 1-4px
+                        star.style.width = `${size}px`;
+                        star.style.height = `${size}px`;
+
+                        const startX = Math.random() * window.innerWidth; // Random X from left to right
+                        const startY = Math.random() * window.innerHeight + window.scrollY; // From current visible screen area
+                        star.style.left = `${startX}px`;
+                        star.style.top = `${startY}px`;
+
+                        const hue = Math.floor(Math.random() * 360);
+                        const saturation = Math.floor(Math.random() * 30) + 70; // 70-100%
+                        const lightness = Math.floor(Math.random() * 30) + 70; // 70-100%
+                        star.style.backgroundColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+                        const animationDuration = Math.random() * 4 + 4; // 4-7 seconds
+                        star.style.animationDuration = `${animationDuration}s`;
+
+                        const animationDelay = Math.random() * 5; // 0-5 seconds delay
+                        star.style.animationDelay = `${animationDelay}s`;
+
+                        body.appendChild(star);
+
+                        // Remove star after animation completes to prevent too many DOM elements
+                        star.addEventListener('animationend', () => {
+                            star.remove();
+                        });
+                    };
+
+                    // Create a continuous stream of stars
+                    setInterval(createStar, 800); // Create a new star every 500ms
+                    for (let i = 0; i < 5; i++) {
+                        createStar(); // Initial stars
+                    }
+
+                });
+            </script>
         {% endblock %}
     {% endcompress %}
+    <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
     {% block footer %}
+    {# Removed Fancybox initialization script from here #}
     {% endblock %}
+    {% include 'share_layout/footer.html' %}
 </footer>
+
+<script>
+    // 这是 go-fly 在线客服小部件的集成代码
+    // 请将 "http://127.0.0.1:8081" 替换为您实际部署 go-fly 服务端的地址
+    (function(a, b, c, d) {
+        let h = b.getElementsByTagName('head')[0];
+        let s = b.createElement('script');
+        s.type = 'text/javascript';
+        s.src = c + "/static/js/kefu-front.js";
+        s.onload = s.onreadystatechange = function () {
+            if (!this.readyState || this.readyState === "loaded" || this.readyState === "complete") d(c);
+        };
+        h.appendChild(s);
+    })(window, document, "http://127.0.0.1:8081", function(u) {
+        KEFU.init({
+            KEFU_URL: u,
+            KEFU_KEFU_ID: "宗主", // 根据您的需求调整 kefu_id
+        });
+    });
+
+    // Theme mode toggle JavaScript
+    document.addEventListener('DOMContentLoaded', () => {
+        const themeToggleButton = document.getElementById('theme-toggle-button');
+        const lightModeIcon = document.querySelector('.light-mode-icon');
+        const darkModeIcon = document.querySelector('.dark-mode-icon');
+
+        // Function to set the theme
+        const setTheme = (mode) => {
+            if (mode === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+                lightModeIcon.style.display = 'none';
+                darkModeIcon.style.display = 'inline';
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+                lightModeIcon.style.display = 'inline';
+                darkModeIcon.style.display = 'none';
+            }
+            localStorage.setItem('themeMode', mode);
+        };
+
+        // Get saved theme from localStorage
+        const savedTheme = localStorage.getItem('themeMode');
+
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // Check system preference if no theme is saved
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+
+        // Toggle theme on button click
+        themeToggleButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (document.documentElement.classList.contains('dark-mode')) {
+                setTheme('light');
+            } else {
+                setTheme('dark');
+            }
+        });
+    });
+</script>
+</body>
 </html>

@@ -1,8 +1,11 @@
 {% extends 'share_layout/base.html' %}
 {% load blog_tags %}
+{% load static %}
 
 {% block header %}
-    <title>{{ article.title }} | {{ SITE_DESCRIPTION }}</title>
+    {{ block.super }}
+    <title>{{ article.title }} 
+    </title>
     <meta property="og:type" content="article"/>
     <meta property="og:title" content="{{ article.title }}"/>
 
@@ -26,11 +29,37 @@
         <meta name="keywords" content="{{ SITE_KEYWORDS }}"/>
     {% endif %}
 
+    {# Custom CSS for article media layout #}
+    <link rel="stylesheet" href="{% static 'blog/css/article_media.css' %}">
+
+    <style>
+        .premium-tag {
+            color: red;
+            float: right;
+            margin-left: 10px; /* Add some space between title and tag */
+        }
+    </style>
+
 {% endblock %}
 {% block content %}
     <div id="primary" class="site-content">
         <div id="content" role="main">
-            {% load_article_detail article False user %}
+            <div class="article-content"> {# Add a wrapper div for easy selection #}
+                {% if is_premium_restricted %}
+                    <div class="premium-restricted-message text-center p-4 my-4" style="border: 1px solid #ddd; background-color: #f9f9f9;">
+                        <h4>此卷为宗门秘阁典藏！</h4>
+                        <p class="lead">此秘录深奥晦涩，唯对本门内门弟子或核心真传开放全本阅览权限。</p>
+                        <p class="mb-0">莫失问道良机！ 立下心魔誓，晋升宗内高人，即可遍览秘阁万卷，独享宗门供奉！</p>
+                        <p><a href="{% url 'blog:membership_list' %}" class="btn btn-primary mt-3" style="color: blue !important;">进入宗门</a></p>
+                    </div>
+                {% else %}
+                    <div class="article-header"> {# Assuming article title is within a header div #}
+                        
+                        {# Other article header info like author, date etc. #}
+                    </div>
+                    {% load_article_detail article False user exclude_initial_images=True %}
+                {% endif %}
+            </div>
 
             {% if article.type == 'a' %}
                 <nav class="nav-single">
@@ -73,4 +102,112 @@
 
 {% block sidebar %}
     {% load_sidebar user "p" %}
+{% endblock %}
+
+{% block script %}
+    {{ block.super }}
+    {# Removed FancyBox JS and initialization from here #}
+{% endblock %}
+
+{% block compress_js %}
+    {# Removed content from here #}
+{% endblock %}
+
+{% block footer %}
+    {{ block.super }}
+    <script>
+        $(document).ready(function() {
+            console.log('Document ready. Initializing Fancybox and image pagination.');
+
+            // Function to apply Fancybox binding and lazy loading to newly added images
+            function applyImageEnhancements($elements) {
+                console.log('applyImageEnhancements called with:', $elements);
+                $elements.each(function() {
+                    var $mediaElement = $(this); // This will be the <a> tag wrapped around img/video
+                    
+                    // Apply skeleton class to the actual img/video element inside the <a>
+                    $mediaElement.find('img, video').addClass('skeleton');
+
+                    // Remove skeleton class when image/video is loaded
+                    $mediaElement.find('img').on('load', function() {
+                        $(this).removeClass('skeleton');
+                    }).each(function() {
+                        if(this.complete) $(this).trigger('load');
+                    });
+
+                    // For videos, remove skeleton once metadata is loaded (enough to play)
+                    $mediaElement.find('video').on('loadedmetadata', function() {
+                        $(this).removeClass('skeleton');
+                    });
+
+                    // Add lazy loading to images and videos inside the <a> tag
+                    $mediaElement.find('img, video').attr('loading', 'lazy');
+                });
+                // Re-initialize Fancybox for all elements with data-fancybox attribute
+                console.log('Binding Fancybox to [data-fancybox="gallery"]');
+                Fancybox.bind('[data-fancybox="gallery"]', {
+                    infobar: true,
+                    buttons: ['close', 'thumbs', 'zoom', 'slideShow', 'fullScreen'],
+                });
+            }
+
+            // Apply enhancements to initial images and videos (now wrapped in <a> tags)
+            // Target <a> tags that contain data-fancybox="gallery" within article content or paginated container
+            // On article detail page, images are loaded via AJAX, so this initial call primarily targets if any exist by accident or videos.
+            applyImageEnhancements($('.article-content a[data-fancybox="gallery"], #paginated-images-container a[data-fancybox="gallery"]'));
+
+            // Pagination for images
+            var articleId = '{{ article.id }}';
+            var currentPage = 1;
+            var loadMoreButton = $('#load-more-images');
+            var paginatedImagesContainer = $('#paginated-images-container');
+
+            if (!articleId) {
+                loadMoreButton.hide();
+                console.warn('Article ID is empty. Image pagination disabled.');
+                return; // Exit if no ID
+            }
+            console.log('Article ID:', articleId);
+
+            function loadImages(page) {
+                console.log('Attempting to load images for page:', page);
+                $.ajax({
+                    url: `/articles/${articleId}/images/${page}/`,
+                    method: 'GET',
+                    success: function(response) {
+                        console.log('AJAX success! Response:', response);
+                        if (response.images && response.images.length > 0) {
+                            var $newMediaElements = $(response.images.join(''));
+                            console.log('New media elements to append:', $newMediaElements);
+                            paginatedImagesContainer.append($newMediaElements);
+                            currentPage++;
+                            loadMoreButton.attr('data-page-num', currentPage);
+                            loadMoreButton.show();
+                            // Apply enhancements to newly loaded media elements (which are now <a> tags)
+                            applyImageEnhancements($newMediaElements);
+                            console.log('Fancybox enhancements applied to new elements.');
+                        }
+
+                        if (!response.has_next_page) {
+                            loadMoreButton.hide();
+                            console.log('No more pages. Load more button hidden.');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading images:', error, status, xhr);
+                        loadMoreButton.hide(); // Hide button on error
+                    }
+                });
+            }
+
+            // Load first page of images on document ready
+            loadImages(currentPage);
+
+            // Load more images on button click
+            loadMoreButton.on('click', function() {
+                loadImages(currentPage);
+            });
+
+        });
+    </script>
 {% endblock %}

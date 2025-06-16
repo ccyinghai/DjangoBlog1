@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import mdeditor.fields
+import ckeditor_uploader.fields
 
 
 class Migration(migrations.Migration):
@@ -115,7 +115,7 @@ class Migration(migrations.Migration):
                 ('created_time', models.DateTimeField(default=django.utils.timezone.now, verbose_name='创建时间')),
                 ('last_mod_time', models.DateTimeField(default=django.utils.timezone.now, verbose_name='修改时间')),
                 ('title', models.CharField(max_length=200, unique=True, verbose_name='标题')),
-                ('body', mdeditor.fields.MDTextField(verbose_name='正文')),
+                ('body', ckeditor_uploader.fields.RichTextUploadingField(verbose_name='正文')),
                 ('pub_time', models.DateTimeField(default=django.utils.timezone.now, verbose_name='发布时间')),
                 ('status', models.CharField(choices=[('d', '草稿'), ('p', '发表')], default='p', max_length=1, verbose_name='文章状态')),
                 ('comment_status', models.CharField(choices=[('o', '打开'), ('c', '关闭')], default='o', max_length=1, verbose_name='评论状态')),

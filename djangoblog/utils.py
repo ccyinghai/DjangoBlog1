@@ -13,9 +13,12 @@ import bleach
 import markdown
 import requests
 from django.conf import settings
+from django.contrib.sites.shortcuts import get_current_site as django_get_current_site
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.templatetags.static import static
+from PIL import Image
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +96,11 @@ def expire_view_cache(path, servername, serverport, key_prefix=None):
 
 
 @cache_decorator()
-def get_current_site():
-    site = Site.objects.get_current()
+def get_current_site(request=None):
+    if request:
+        site = django_get_current_site(request)
+    else:
+        site = Site.objects.get_current()
     return site
 
 
@@ -111,6 +117,22 @@ class CommonMarkdown:
         )
         body = md.convert(value)
         toc = md.toc
+
+        # Process image and video tags to apply CSS classes for uniform sizing.
+        # Dimension processing via PIL.Image.open is removed as it's for local files.
+        soup = BeautifulSoup(body, 'html.parser')
+        for img_tag in soup.find_all('img'):
+            # Add a class for CSS styling
+            img_tag['class'] = img_tag.get('class', []) + ['content-image']
+            # Remove data-fancybox attribute to prevent Fancybox from initializing
+            if 'data-fancybox' in img_tag.attrs:
+                del img_tag.attrs['data-fancybox']
+
+        for video_tag in soup.find_all('video'):
+            # Add a class for CSS styling
+            video_tag['class'] = video_tag.get('class', []) + ['content-video']
+
+        body = str(soup) # Convert soup back to HTML string
         return body, toc
 
     @staticmethod
@@ -219,7 +241,7 @@ def get_resource_url():
     if settings.STATIC_URL:
         return settings.STATIC_URL
     else:
-        site = get_current_site()
+        site = Site.objects.get_current()
         return 'http://' + site.domain + '/static/'
 
 

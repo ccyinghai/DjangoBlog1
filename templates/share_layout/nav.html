@@ -21,10 +21,73 @@
                     </li>
                 {% endfor %}
             {% endif %}
-            <li class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children">
+            <li id="menu-item-archives" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children">
 
                 <a href="{% url "blog:archives" %}">{% trans 'Article archive' %}</a>
             </li>
+
+            <!-- <li class="menu-item">
+                <a href="#" id="customer-service-button">{% trans '在线获取令牌' %}</a>
+            </li> -->
+            &nbsp;
+            &nbsp; &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp; 
+            &nbsp; 
+            &nbsp; 
+            &nbsp;
+            &nbsp; 
+            &nbsp; 
+            &nbsp; 
+            &nbsp; 
+            &nbsp;
+            &nbsp; 
+            &nbsp; 
+            &nbsp; 
+            &nbsp; 
+            &nbsp;
+            &nbsp; 
+            &nbsp; 
+            &nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+            &nbsp;&nbsp; 
+
+
+            {# Add user account and membership status here #}
+            {% if request.user.is_authenticated %}
+                <li class="menu-item" style="margin-left: auto;">
+                    <span>{% trans '道友,' %} {{ request.user.username }}</span>
+                    <span style="margin-left: 10px;">
+                        {% if request.user.usermembership and request.user.usermembership.is_membership_active %}
+                            <span style="color: red;">供奉至: ({{ request.user.usermembership.end_date|date:"Y-m-d" }})</span>
+                        {% else %}
+                            <a href="{% url 'blog:membership_list' %}" style="color: powderblue;">
+                                入驻宗门，观看秘籍！
+                            </a>
+                        {% endif %}
+                    </span>
+                </li>
+            {% else %}
+                <li class="menu-item" style="margin-left: auto;">
+                     <span>{% trans '道友,' %} {% trans 'Guest' %}</span>
+                     <span style="margin-left: 10px;">
+                        <a href="{% url 'blog:membership_list' %}" style="color: powderblue;">
+                            入驻宗门，观看秘籍！
+                        </a>
+                    </span>
+                </li>
+            {% endif %}
+
         </ul>
     </div>
 </nav><!-- #site-navigation -->

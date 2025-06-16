@@ -4,12 +4,13 @@ from django.utils.translation import gettext_lazy as _
 
 from djangoblog.utils import get_current_site
 from djangoblog.utils import send_email
+from django.contrib.sites.models import Site
 
 logger = logging.getLogger(__name__)
 
 
 def send_comment_email(comment):
-    site = get_current_site().domain
+    site = Site.objects.get_current().domain
     subject = _('Thanks for your comment')
     article_url = f"https://{site}{comment.article.get_absolute_url()}"
     html_content = _("""<p>Thank you very much for your comments on this site</p>

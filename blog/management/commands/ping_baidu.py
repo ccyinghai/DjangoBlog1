@@ -4,7 +4,8 @@ from djangoblog.spider_notify import SpiderNotify
 from djangoblog.utils import get_current_site
 from blog.models import Article, Tag, Category
 
-site = get_current_site().domain
+from django.contrib.sites.models import Site
+site = Site.objects.get_current().domain
 
 
 class Command(BaseCommand):
