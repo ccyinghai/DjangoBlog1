@@ -15,8 +15,12 @@
 <html lang="zh-CN" prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/article#">
 <!--<![endif]-->
 <head>
+        <!-- ... 其他 head 内容 ... -->
+        <link rel="icon" href="{% static 'blog/img/favicon.ico' %}" type="image/x-icon">
+        <link rel="shortcut icon" href="{% static 'blog/img/favicon.ico' %}" type="image/x-icon">
+        <!-- ... 其他 head 内容 ... -->
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <script>
         // Immediate theme application to prevent FOUC/FOLM
         (function() {

@@ -23,25 +23,25 @@ logger = logging.getLogger(__name__)
 
 
 class BlogUserCreationForm(forms.ModelForm):
-    password1 = forms.CharField(label=_('password'), widget=forms.PasswordInput)
+    password = forms.CharField(label=_('password'), widget=forms.PasswordInput)
     password2 = forms.CharField(label=_('Enter password again'), widget=forms.PasswordInput)
 
     class Meta:
         model = BlogUser
-        fields = ('email',)
+        fields = ('username', 'email', 'nickname', 'source',)
 
     def clean_password2(self):
         # Check that the two password entries match
-        password1 = self.cleaned_data.get("password1")
+        password = self.cleaned_data.get("password")
         password2 = self.cleaned_data.get("password2")
-        if password1 and password2 and password1 != password2:
+        if password and password2 and password != password2:
             raise forms.ValidationError(_("passwords do not match"))
         return password2
 
     def save(self, commit=True):
         # Save the provided password in hashed format
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password1"])
+        user.set_password(self.cleaned_data["password"])
         if commit:
             user.source = 'adminsite'
             user.save()
@@ -121,6 +121,23 @@ class MembershipStatusFilter(SimpleListFilter):
 class BlogUserAdmin(UserAdmin):
     form = BlogUserChangeForm
     add_form = BlogUserCreationForm
+
+    # Custom fieldsets for the change user form
+    fieldsets = (
+        (None, {"fields": ("username", "password")}),
+        (_("Personal info"), {"fields": ("nickname", "email", "source")}),
+        (_("Permissions"), {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+    )
+
+    # Custom add_fieldsets for the add user form
+    add_fieldsets = (
+        (None, {
+            "classes": ("wide",),
+            "fields": ("username", "email", "nickname", "source", "password", "password2"),
+        }),
+    )
+
     list_display = (
         'id',
         'nickname',
@@ -136,11 +153,11 @@ class BlogUserAdmin(UserAdmin):
     ordering = ('-id',)
     inlines = (MembershipInline,)
     list_filter = (
-        'is_staff', # Example of existing filter
+        'is_staff',
         'is_superuser',
         'is_active',
         'date_joined',
-        MembershipStatusFilter, # Add our custom filter here
+        MembershipStatusFilter,
     )
 
     def membership_status(self, obj):

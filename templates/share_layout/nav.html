@@ -1,6 +1,7 @@
 {% load i18n %}
 
 <nav id="site-navigation" class="main-navigation" role="navigation">
+    <button class="menu-toggle">菜单</button>
     <div class="menu-%e8%8f%9c%e5%8d%95-container">
         <ul id="menu-%e8%8f%9c%e5%8d%95" class="nav-menu">
             <li id="menu-item-3498"
@@ -29,39 +30,6 @@
             <!-- <li class="menu-item">
                 <a href="#" id="customer-service-button">{% trans '在线获取令牌' %}</a>
             </li> -->
-            &nbsp;
-            &nbsp; &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp; 
-            &nbsp; 
-            &nbsp; 
-            &nbsp;
-            &nbsp; 
-            &nbsp; 
-            &nbsp; 
-            &nbsp; 
-            &nbsp;
-            &nbsp; 
-            &nbsp; 
-            &nbsp; 
-            &nbsp; 
-            &nbsp;
-            &nbsp; 
-            &nbsp; 
-            &nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-            &nbsp;&nbsp; 
-
 
             {# Add user account and membership status here #}
             {% if request.user.is_authenticated %}
@@ -71,7 +39,7 @@
                         {% if request.user.usermembership and request.user.usermembership.is_membership_active %}
                             <span style="color: red;">供奉至: ({{ request.user.usermembership.end_date|date:"Y-m-d" }})</span>
                         {% else %}
-                            <a href="{% url 'blog:membership_list' %}" style="color: powderblue;">
+                            <a href="{% url 'blog:membership_list' %}" style="color: purple;">
                                 入驻宗门，观看秘籍！
                             </a>
                         {% endif %}
@@ -81,7 +49,7 @@
                 <li class="menu-item" style="margin-left: auto;">
                      <span>{% trans '道友,' %} {% trans 'Guest' %}</span>
                      <span style="margin-left: 10px;">
-                        <a href="{% url 'blog:membership_list' %}" style="color: powderblue;">
+                        <a href="{% url 'blog:membership_list' %}" style="color: purple;">
                             入驻宗门，观看秘籍！
                         </a>
                     </span>
