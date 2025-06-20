@@ -211,6 +211,71 @@
                     }
 
                 });
+
+                // Function to generate a random RGBA color
+                function getRandomRgbaColor() {
+                    const r = Math.floor(Math.random() * 256);
+                    const g = Math.floor(Math.random() * 256);
+                    const b = Math.floor(Math.random() * 256);
+                    const a = (Math.random() * 0.5 + 0.3).toFixed(2); // Opacity between 0.3 and 0.8
+                    return `rgba(${r}, ${g}, ${b}, ${a})`;
+                }
+
+                // Set random gradient colors on page load
+                document.addEventListener('DOMContentLoaded', () => {
+                    const root = document.documentElement;
+
+                    // Random colors for light mode
+                    const lightRedStart = getRandomRgbaColor();
+                    const lightBlueStart = getRandomRgbaColor();
+
+                    root.style.setProperty('--gradient-red-start', lightRedStart);
+                    root.style.setProperty('--gradient-red-end', lightRedStart.replace(/\d+\.\d+\)/, '0)'));
+                    root.style.setProperty('--gradient-blue-start', lightBlueStart);
+                    root.style.setProperty('--gradient-blue-end', lightBlueStart.replace(/\d+\.\d+\)/, '0)'));
+
+                    // Random colors for dark mode (re-using getRandomRgbaColor for simplicity, could be different logic)
+                    const darkRedStart = getRandomRgbaColor();
+                    const darkBlueStart = getRandomRgbaColor();
+
+                    // To apply dark mode colors, we need to check if dark mode is active and potentially update later
+                    // For now, we'll set them as variables. The theme toggle will handle applying the correct set.
+                    // This is a simplification; a more robust solution might involve updating these when the theme changes.
+                    if (root.classList.contains('dark-mode')) {
+                        root.style.setProperty('--gradient-red-start', darkRedStart);
+                        root.style.setProperty('--gradient-red-end', darkRedStart.replace(/\d+\.\d+\)/, '0)'));
+                        root.style.setProperty('--gradient-blue-start', darkBlueStart);
+                        root.style.setProperty('--gradient-blue-end', darkBlueStart.replace(/\d+\.\d+\)/, '0)'));
+                    }
+
+                    // Modify the theme toggle to also update gradient colors
+                    const originalSetTheme = window.setTheme; // Store original if it exists
+                    window.setTheme = (mode) => {
+                        if (originalSetTheme) originalSetTheme(mode);
+                        if (mode === 'dark') {
+                            root.style.setProperty('--gradient-red-start', darkRedStart);
+                            root.style.setProperty('--gradient-red-end', darkRedStart.replace(/\d+\.\d+\)/, '0)'));
+                            root.style.setProperty('--gradient-blue-start', darkBlueStart);
+                            root.style.setProperty('--gradient-blue-end', darkBlueStart.replace(/\d+\.\d+\)/, '0)'));
+                        } else {
+                            root.style.setProperty('--gradient-red-start', lightRedStart);
+                            root.style.setProperty('--gradient-red-end', lightRedStart.replace(/\d+\.\d+\)/, '0)'));
+                            root.style.setProperty('--gradient-blue-start', lightBlueStart);
+                            root.style.setProperty('--gradient-blue-end', lightBlueStart.replace(/\d+\.\d+\)/, '0)'));
+                        }
+                    };
+
+                    // Re-run initial theme setting to apply new random colors if a theme was already set
+                    const savedTheme = localStorage.getItem('themeMode');
+                    if (savedTheme) {
+                        window.setTheme(savedTheme);
+                    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        window.setTheme('dark');
+                    } else {
+                        window.setTheme('light');
+                    }
+                });
+
             </script>
         {% endblock %}
     {% endcompress %}

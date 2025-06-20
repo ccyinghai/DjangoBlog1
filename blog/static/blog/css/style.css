@@ -1,3 +1,10 @@
+@font-face {
+    font-family: 'HYShangWeiShouShu';
+    src: url('../../HYShangWeiShouShuW.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
     margin: 0;
     padding: 0;
@@ -8,39 +15,79 @@ html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockq
 
 /* Theme Variables */
 :root {
-    --body-bg-color: rgb(255, 255, 255); /* Changed to opaque white to match site background */
-    --body-text-color: #444;
-    --site-bg-color: rgb(255, 255, 255); /* Changed to opaque white to match body background */
+    --body-bg-color: rgb(220, 220, 220);
+    --body-text-color: #333;
+    --site-bg-color: transparent;
     --site-border-color: rgba(200, 200, 200, 0.5);
-    --header-title-color: #515151;
-    --header-description-color: #757575;
-    --link-color: #21759b;
-    --link-hover-color: #0f3647;
-    --widget-title-color: #636363;
-    --widget-text-color: #757575;
-    --footer-text-color: #686868;
-    --entry-title-color: #444;
-    --entry-meta-color: #757575;
-    --input-background-color: transparent; /* New variable for input background */
-    --input-border-color: #ccc; /* New variable for input border */
+    --header-title-color: #333;
+    --header-description-color: #555;
+    --link-color: #e30b14; /* 亮红色 */
+    --link-hover-color: #ff333d;
+    --widget-title-color: #333;
+    --widget-text-color: #555;
+    --footer-text-color: #555;
+    --entry-title-color: #333;
+    --entry-meta-color: #555;
+    --input-background-color: transparent;
+    --input-border-color: #ccc;
+
+    /* Bleach-style gradient colors for light mode (gold/cyan dominance, more prominent) */
+    --gradient-red-start: rgba(255, 180, 0, 1.0); /* 浅金色，完全不透明 */
+    --gradient-red-end: rgba(255, 180, 0, 0);
+    --gradient-blue-start: rgba(0, 200, 255, 0.9); /* 淡青色，更高透明度 */
+    --gradient-blue-end: rgba(0, 200, 255, 0);
+
+    --gradient-red-end-point: 50%;
+    --gradient-blue-end-point: 50%;
+
+    --gradient-dir-1: to left;
+    --gradient-dir-2: to top left;
+
+    --bg-pos-1: right top;
+    --bg-pos-2: right bottom;
+
+    --bg-size-1: 50% 100%;
+    --bg-size-2: 50% 100%;
+
+    --body-bg-color-fade: rgba(255, 255, 255, 1);
 }
 
-html.dark-mode { /* Changed from body.dark-mode to html.dark-mode */
-    --body-bg-color: rgb(0, 0, 0); /* Changed to opaque pure black to match site background */
-    --body-text-color: #ddd;
-    --site-bg-color: rgb(0, 0, 0); /* Changed to opaque pure black to match body background */
+html.dark-mode {
+    --body-bg-color: rgb(10, 10, 10);
+    --body-text-color: #eee;
+    --site-bg-color: transparent;
     --site-border-color: rgba(70, 70, 70, 0.5);
     --header-title-color: #eee;
     --header-description-color: #bbb;
-    --link-color: #6a9edb;
-    --link-hover-color: #9ac2ed;
+    --link-color: #0b14e3; /* 蓝色光效 */
+    --link-hover-color: #333dff;
     --widget-title-color: #bbb;
     --widget-text-color: #aaa;
     --footer-text-color: #aaa;
     --entry-title-color: #eee;
     --entry-meta-color: #bbb;
-    --input-background-color: transparent; /* New variable for input background */
-    --input-border-color: #777; /* New variable for input border */
+    --input-background-color: transparent;
+    --input-border-color: #777;
+
+    /* Bleach-style gradient colors for dark mode (blue dominance) */
+    --gradient-red-start: rgba(227, 11, 20, 0.1);
+    --gradient-red-end: rgba(227, 11, 20, 0);
+    --gradient-blue-start: rgba(11, 20, 227, 0.3);
+    --gradient-blue-end: rgba(11, 20, 227, 0);
+
+    --gradient-red-end-point: 50%;
+    --gradient-blue-end-point: 50%;
+
+    --gradient-dir-1: to right;
+    --gradient-dir-2: to bottom right;
+
+    --bg-pos-1: left top;
+    --bg-pos-2: left bottom;
+
+    --bg-size-1: 50% 100%;
+    --bg-size-2: 50% 100%;
+
+    --body-bg-color-fade: rgba(10, 10, 10, 1);
 }
 
 body {
@@ -54,7 +101,14 @@ body {
     text-rendering: optimizeLegibility;
     color: var(--body-text-color);
     background-color: var(--body-bg-color);
-    font-family: "Open Sans",Helvetica,Arial,sans-serif;
+    background-image: linear-gradient(var(--gradient-dir-1), var(--gradient-red-start) 0%, transparent var(--gradient-red-end-point)),
+                      linear-gradient(var(--gradient-dir-2), var(--gradient-blue-start) 0%, transparent var(--gradient-blue-end-point)),
+                      linear-gradient(to bottom, transparent, var(--body-bg-color-fade) 90%);
+    background-repeat: no-repeat;
+    background-size: var(--bg-size-1), var(--bg-size-2), 100% 100%;
+    background-position: var(--bg-pos-1), var(--bg-pos-2), left top;
+    background-attachment: fixed;
+    font-family: 'HYShangWeiShouShu', "Open Sans", Helvetica, Arial, sans-serif;
 }
 
 ol,
@@ -272,8 +326,8 @@ article.post-password-required input[type=submit],
     line-height: 1.428571429;
     font-weight: normal;
     color: #7c7c7c;
-    background-color: rgba(224, 187, 228, 0.7);
-    border: 1px solid rgba(180, 140, 200, 0.8);
+    background-color: transparent;
+    border: 1px solid transparent;
     border-radius: 3px;
     box-shadow: 0 1px 2px rgba(64, 64, 64, 0.1);
 }
@@ -740,7 +794,7 @@ section[role="banner"] {
 
 /* Footer */
 footer[role="contentinfo"] {
-    border-top: 1px solid #ededed;
+    border-top: none;
     clear: both;
     font-size: 12px;
     font-size: 0.857142857rem;
@@ -753,14 +807,16 @@ footer[role="contentinfo"] {
     margin-right: auto;
     padding: 24px 0;
     padding: 1.714285714rem 0;
+    background-color: transparent;
+    color: var(--footer-text-color);
 }
 
 footer[role="contentinfo"] a {
-    color: #686868;
+    color: var(--link-color);
 }
 
 footer[role="contentinfo"] a:hover {
-    color: #21759b;
+    color: var(--link-hover-color);
 }
 
 .site-info span[role=separator] {
@@ -1932,7 +1988,7 @@ img#wpstats {
         margin-bottom: 48px;
         margin-bottom: 3.428571429rem;
         box-shadow: none; /* Removed box-shadow */
-        background-color: var(--site-bg-color); /* Changed to transparent */
+        background-color: transparent;
         border: 1px solid var(--site-border-color); /* Added light gray border */
     }
 
@@ -2601,4 +2657,8 @@ div.field-is_premium {
 /* Ensure #page is relatively positioned */
 #page {
     position: relative;
+    margin: 2em auto;
+    max-width: 960px;
+    background: transparent;
+    padding: 0 40px;
 }
